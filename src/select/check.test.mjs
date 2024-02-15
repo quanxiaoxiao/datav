@@ -17,56 +17,8 @@ test('select > check', () => {
   });
   assert.throws(() => {
     check({
-      type: 'string',
-      properties: 'xxx',
-    });
-  });
-  assert.throws(() => {
-    check({
-      type: 'string',
-      properties: null,
-    });
-  });
-  assert.throws(() => {
-    check({
-      type: 'string',
-      properties: ['dataKey', 11],
-    });
-  });
-  assert.throws(() => {
-    check({
-      type: 'string',
-      properties: ['dataKey', 'xxx'],
-    });
-  });
-  assert.throws(() => {
-    check({
-      type: 'string',
-      properties: [11],
-    });
-  });
-  assert.throws(() => {
-    check({
-      type: 'string',
-      properties: [{}],
-    });
-  });
-  assert.throws(() => {
-    check({
-      type: 'string',
+      type: 'object',
       properties: [],
-    });
-  });
-  assert.throws(() => {
-    check({
-      type: 'string',
-      properties: [[]],
-    });
-  });
-  assert.throws(() => {
-    check({
-      type: 'string',
-      properties: {},
     });
   });
   assert.throws(() => {

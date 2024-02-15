@@ -44,29 +44,11 @@ function select(express) {
   }
   check(express);
   if (['string', 'number', 'boolean', 'integer'].includes(express.type)) {
-    if (!Object.hasOwnProperty.call(express, 'properties')) {
-      return (v) => checkout(v, express.type);
-    }
-    if (express.properties.length !== 1) {
-      throw new Error(`\`${JSON.stringify(express)}\` express invalid`);
-    }
-    const [pathname] = express.properties;
-    return (obj) => {
-      const v = getValueOfPathname(obj, pathname);
-      return checkout(v, express.type);
-    };
+    return (v) => checkout(v, express.type);
   }
   if (express.type === 'object') {
-    if (Array.isArray(express.properties)) {
-      const [pathname] = express.properties;
-      if (express.properties.length === 1) {
-        return (obj) => checkout(getValueOfPathname(obj, pathname), 'object');
-      }
-      if (!_.isPlainObject(express.properties[1])) {
-        throw new Error(`\`${JSON.stringify(express)}\` express invalid`);
-      }
-      const walk = walkWithObject(express.properties[1]);
-      return (obj) => walk(getValueOfPathname(obj, pathname), obj);
+    if (!_.isPlainObject(express.properties)) {
+      throw new Error(`\`${JSON.stringify(express)}\` express invalid`);
     }
     return walkWithObject(express.properties);
   }

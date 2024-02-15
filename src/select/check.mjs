@@ -13,24 +13,7 @@ const validate = ajv.compile({
           enum: ['object', 'array'],
         },
         properties: {
-          anyOf: [
-            {
-              type: 'array',
-              items: [
-                {
-                  type: 'string',
-                },
-                {
-                  type: ['object', 'array'],
-                },
-              ],
-              minItems: 1,
-              additionalItems: false,
-            },
-            {
-              type: 'object',
-            },
-          ],
+          type: 'object',
         },
       },
       required: ['type', 'properties'],
@@ -39,19 +22,6 @@ const validate = ajv.compile({
       properties: {
         type: {
           enum: ['string', 'number', 'boolean', 'integer'],
-        },
-        properties: {
-          type: 'array',
-          items: [
-            {
-              type: 'string',
-            },
-            {
-              type: ['object', 'array'],
-            },
-          ],
-          minItems: 1,
-          additionalItems: false,
         },
       },
       required: ['type'],
