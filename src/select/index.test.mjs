@@ -300,4 +300,29 @@ test('select > index, type with object', () => {
     name: 'xxx',
     age: 33,
   });
+  assert.deepEqual(select({
+    type: 'object',
+    properties: {
+      obj: ['arr.0', {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+          },
+          foo: ['age', { type: 'integer' }],
+        },
+      }],
+    },
+  })({
+    name: 'xxxx',
+    arr: [{
+      name: 'aaa',
+      age: '99.9',
+    }],
+  }), {
+    obj: {
+      name: 'aaa',
+      foo: 99,
+    },
+  });
 });
