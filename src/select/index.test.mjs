@@ -6,6 +6,9 @@ test('select > index', () => {
   assert.throws(() => {
     select('number');
   });
+  assert.throws(() => {
+    select(['name']);
+  });
   assert.equal(select({ type: 'number' })('1'), 1);
   assert.equal(select({ type: 'number' })('1.1'), 1.1);
   assert.equal(select({ type: 'number' })(1.1), 1.1);
@@ -165,5 +168,90 @@ test('select > index, type with object', () => {
     name: 'quan',
     age: 22.5,
     ding: 'foo',
+  });
+  assert.deepEqual(select({
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+      },
+      age: {
+        type: 'number',
+      },
+      sub: ['obj', {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+          },
+          age: {
+            type: 'integer',
+          },
+          cqq: ['big', { type: 'string' }],
+        },
+      }],
+    },
+  })({
+    name: 'quan',
+    age: '22.5',
+    obj: {
+      name: 'xxx',
+      age: '33.3',
+      big: 'foo',
+    },
+  }), {
+    name: 'quan',
+    age: 22.5,
+    sub: {
+      name: 'xxx',
+      age: 33,
+      cqq: 'foo',
+    },
+  });
+  assert.deepEqual(select(['obj', {
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+      },
+      age: {
+        type: 'integer',
+      },
+    },
+  }])({
+    name: 'quan',
+    age: '22.5',
+    obj: {
+      name: 'xxx',
+      age: '33.3',
+      big: 'foo',
+    },
+  }), {
+    name: 'xxx',
+    age: 33,
+  });
+  assert.deepEqual(select(['obj', {
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+      },
+      bb: ['age', { type: 'number' }],
+      age: {
+        type: 'integer',
+      },
+    },
+  }])({
+    name: 'quan',
+    age: '22.5',
+    obj: {
+      name: 'xxx',
+      age: '33.3',
+      big: 'foo',
+    },
+  }), {
+    bb: 33.3,
+    name: 'xxx',
+    age: 33,
   });
 });
