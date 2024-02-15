@@ -35,7 +35,7 @@ function select(express) {
   if (Array.isArray(express)) {
     const [pathname] = express;
     if (typeof pathname !== 'string'
-      && !_.isPlainObject(express[1])
+      || !_.isPlainObject(express[1])
     ) {
       throw new Error(`\`${JSON.stringify(express)}\` express invalid`);
     }
@@ -47,9 +47,6 @@ function select(express) {
     return (v) => checkout(v, express.type);
   }
   if (express.type === 'object') {
-    if (!_.isPlainObject(express.properties)) {
-      throw new Error(`\`${JSON.stringify(express)}\` express invalid`);
-    }
     return walkWithObject(express.properties);
   }
   if (express.type !== 'array') {

@@ -9,6 +9,12 @@ test('select > index', () => {
   assert.throws(() => {
     select(['name']);
   });
+  assert.throws(() => {
+    select(['name', []]);
+  });
+  assert.throws(() => {
+    select(['name', 'xxx']);
+  });
   assert.equal(select({ type: 'number' })('1'), 1);
   assert.equal(select({ type: 'number' })('1.1'), 1.1);
   assert.equal(select({ type: 'number' })(1.1), 1.1);
@@ -32,6 +38,28 @@ test('select > index, []', () => {
 });
 
 test('select > index, type with object', () => {
+  assert.throws(() => {
+    select({
+      type: 'object',
+    });
+  });
+  assert.throws(() => {
+    select({
+      type: 'object',
+      properties: [],
+    });
+  });
+  assert.throws(() => {
+    select(['obj', {
+      type: 'object',
+    }]);
+  });
+  assert.throws(() => {
+    select({
+      type: 'object',
+      properties: 'xxx',
+    });
+  });
   assert.deepEqual(select({
     type: 'object',
     properties: {
@@ -72,11 +100,6 @@ test('select > index, type with object', () => {
       big: 'foo',
     },
   }), { name: 'xxx', age: 33 });
-  assert.throws(() => {
-    select(['obj', {
-      type: 'object',
-    }]);
-  });
   assert.deepEqual(select([
     'obj',
     {
