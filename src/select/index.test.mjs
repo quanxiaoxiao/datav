@@ -140,7 +140,6 @@ test('select > index, type with object', () => {
     name: 'quan',
     ding: 22,
   });
-  /*
   assert.deepEqual(select({
     type: 'object',
     properties: {
@@ -150,7 +149,7 @@ test('select > index, type with object', () => {
       age: {
         type: 'number',
       },
-      ding: ['ojb.big', {
+      ding: ['obj.big', {
         type: 'string',
       }],
     },
@@ -167,5 +166,4 @@ test('select > index, type with object', () => {
     age: 22.5,
     ding: 'foo',
   });
-  */
 });
