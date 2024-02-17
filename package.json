@@ -1,9 +1,14 @@
 {
-  "name": "datav",
-  "version": "0.0.1",
+  "name": "@quanxiaoxiao/datav",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "test": "node --test"
+  },
+  "main": "./src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./package.json": "./package.json"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.23.10",
@@ -16,6 +21,9 @@
     "eslint-plugin-jsx-a11y": "^6.8.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
   },
   "engines": {
     "node": ">= 20.0.0"
