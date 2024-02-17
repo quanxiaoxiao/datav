@@ -368,6 +368,20 @@ test('select > index array', () => {
       age: '4',
     },
   ]), [1, 3, 4]);
+  assert.deepEqual(
+    select({
+      type: 'array',
+      properties: ['$age', { type: 'integer' }],
+    })({ name: 'aa', age: '44.4' }),
+    [44],
+  );
+  assert.deepEqual(
+    select({
+      type: 'array',
+      properties: ['age', { type: 'integer' }],
+    })({ name: 'aa', age: '44.4' }),
+    [44],
+  );
 });
 
 test('select > index', () => {

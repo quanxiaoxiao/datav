@@ -60,25 +60,30 @@ function select(express) {
   }
   if (Array.isArray(express.properties)) {
     const walk = select(express.properties[1]);
-    return (v) => {
-      if (!Array.isArray(v)) {
-        return [];
-      }
+    return (arr, _root) => {
+      const root = _root == null ? arr : _root;
       const [pathname] = express.properties;
-      return v.map((d) => {
-        if (pathname === '' || pathname === '.') {
-          return walk(d);
+      if (!Array.isArray(arr)) {
+        if (pathname.startsWith('$')) {
+          return [walk(getValueOfPathname(root, pathname.slice(1)), root)];
         }
-        return walk(getValueOfPathname(d, pathname));
+        return [walk(getValueOfPathname(arr, pathname), root)];
+      }
+      return arr.map((d) => {
+        if (pathname === '' || pathname === '.') {
+          return walk(d, root);
+        }
+        return walk(getValueOfPathname(d, pathname), root);
       });
     };
   }
   const walk = walkWithObject(express.properties);
-  return (v) => {
-    if (!Array.isArray(v)) {
+  return (arr, _root) => {
+    const root = _root == null ? arr : _root;
+    if (!Array.isArray(root)) {
       return [];
     }
-    return v.map((d) => walk(d));
+    return arr.map((d) => walk(d, root));
   };
 }
 
