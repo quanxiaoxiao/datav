@@ -28,7 +28,7 @@ function walkWithObject(properties) {
       }
       return {
         ...acc,
-        [cur.dataKey]: cur.fn(d[cur.dataKey], root),
+        [cur.dataKey]: cur.fn(d == null ? d : d[cur.dataKey], root),
       };
     }, {});
   };

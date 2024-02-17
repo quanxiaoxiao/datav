@@ -429,6 +429,43 @@ test('select > index array', () => {
   );
 });
 
+test('select > index, array to object', () => {
+  assert.deepEqual(
+    select(
+      ['0', {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+          },
+          id: {
+            type: 'number',
+          },
+          _id: ['id', { type: 'string' }],
+        },
+      }],
+    )([{ name: 'quan', id: 11 }]),
+    { name: 'quan', id: 11, _id: '11' },
+  );
+  assert.deepEqual(
+    select(
+      ['0', {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+          },
+          id: {
+            type: 'number',
+          },
+          _id: ['id', { type: 'string' }],
+        },
+      }],
+    )([]),
+    { name: null, id: null, _id: null },
+  );
+});
+
 test('select > index', () => {
   assert.deepEqual(
     select({
