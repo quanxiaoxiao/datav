@@ -4,12 +4,12 @@ import check from './check.mjs';
 import checkout from '../checkout.mjs';
 import getValueOfPathname from '../getValueOfPathname.mjs';
 
-function walkWithObject(obj) {
-  const keys = Object.keys(obj);
+function walkWithObject(properties) {
+  const keys = Object.keys(properties);
   const list = [];
   for (let i = 0; i < keys.length; i++) {
     const dataKey = keys[i];
-    const express = obj[dataKey];
+    const express = properties[dataKey];
     const handler = {
       dataKey,
       express,
@@ -17,18 +17,21 @@ function walkWithObject(obj) {
     };
     list.push(handler);
   }
-  return (d) => list.reduce((acc, cur) => {
-    if (Array.isArray(cur.express)) {
+  return (d, _root) => {
+    const root = _root == null ? d : _root;
+    return list.reduce((acc, cur) => {
+      if (Array.isArray(cur.express)) {
+        return {
+          ...acc,
+          [cur.dataKey]: cur.fn(d, root),
+        };
+      }
       return {
         ...acc,
-        [cur.dataKey]: cur.fn(d),
+        [cur.dataKey]: cur.fn(d[cur.dataKey], root),
       };
-    }
-    return {
-      ...acc,
-      [cur.dataKey]: cur.fn(d[cur.dataKey]),
-    };
-  }, {});
+    }, {});
+  };
 }
 
 function select(express) {
@@ -40,7 +43,13 @@ function select(express) {
       throw new Error(`\`${JSON.stringify(express)}\` express invalid`);
     }
     const walk = select(express[1]);
-    return (obj) => walk(getValueOfPathname(obj, pathname));
+    return (obj, _root) => {
+      const root = _root == null ? obj : _root;
+      if (pathname.startsWith('$')) {
+        return walk(getValueOfPathname(root, pathname.slice(1)), root);
+      }
+      return walk(getValueOfPathname(obj, pathname), root);
+    };
   }
   check(express);
   if (['string', 'number', 'boolean', 'integer'].includes(express.type)) {

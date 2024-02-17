@@ -370,7 +370,6 @@ test('select > index array', () => {
   ]), [1, 3, 4]);
 });
 
-/*
 test('select > index', () => {
   assert.deepEqual(
     select({
@@ -419,4 +418,3 @@ test('select > index', () => {
     },
   );
 });
-*/
