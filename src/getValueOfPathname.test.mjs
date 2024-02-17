@@ -7,11 +7,9 @@ test('getValueOfPathname', () => {
     getValueOfPathname({}, 11);
   });
   assert.throws(() => {
-    getValueOfPathname({}, '.');
-  });
-  assert.throws(() => {
     getValueOfPathname({}, 'name.');
   });
+  assert.deepEqual(getValueOfPathname({}, '.'), {});
   assert.equal(getValueOfPathname([], 'name'), null);
   assert.equal(getValueOfPathname(null, 'xxx'), null);
   assert.equal(getValueOfPathname({ name: 'quan' }, 'quan'), null);

@@ -1,8 +1,6 @@
 import Ajv from 'ajv';
 
-const ajv = new Ajv({
-  strict: false,
-});
+const ajv = new Ajv();
 
 const validate = ajv.compile({
   type: 'object',
@@ -10,10 +8,39 @@ const validate = ajv.compile({
     {
       properties: {
         type: {
-          enum: ['object', 'array'],
+          enum: ['object'],
         },
         properties: {
           type: 'object',
+        },
+      },
+      required: ['type', 'properties'],
+    },
+    {
+      properties: {
+        type: {
+          enum: ['array'],
+        },
+        properties: {
+          anyOf: [
+            {
+              type: 'object',
+            },
+            {
+              type: 'array',
+              items: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'object',
+                },
+              ],
+              additionalItems: false,
+              minItems: 2,
+              maxItems: 2,
+            },
+          ],
         },
       },
       required: ['type', 'properties'],

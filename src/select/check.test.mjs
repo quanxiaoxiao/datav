@@ -31,6 +31,18 @@ test('select > check', () => {
       type: 'json',
     });
   });
+  assert.throws(() => {
+    check({
+      type: 'array',
+      properties: [],
+    });
+  });
+  assert.throws(() => {
+    check({
+      type: 'array',
+      properties: ['dataKey', []],
+    });
+  });
   check({
     type: 'string',
   });
@@ -55,5 +67,9 @@ test('select > check', () => {
     type: 'array',
     properties: {
     },
+  });
+  check({
+    type: 'array',
+    properties: ['dataKey', {}],
   });
 });

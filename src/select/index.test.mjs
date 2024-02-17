@@ -325,4 +325,93 @@ test('select > index, type with object', () => {
       foo: 99,
     },
   });
+  assert.equal(select(['1', {
+    type: 'number',
+  }])(['44', '33.3']), 33.3);
+  assert.equal(select(['1.age', {
+    type: 'number',
+  }])(['44', '33.3']), null);
 });
+
+test('select > index array', () => {
+  assert.deepEqual(select({
+    type: 'array',
+    properties: {
+      age: {
+        type: 'integer',
+      },
+    },
+  })([{ age: '33.3' }]), [{ age: 33 }]);
+  assert.deepEqual(select({
+    type: 'array',
+    properties: {
+      age: {
+        type: 'integer',
+      },
+    },
+  })({ age: '33.3' }), []);
+  assert.deepEqual(select({
+    type: 'array',
+    properties: ['.', { type: 'integer' }],
+  })(['1.1', '3', '4']), [1, 3, 4]);
+  assert.deepEqual(select({
+    type: 'array',
+    properties: ['age', { type: 'integer' }],
+  })([
+    {
+      age: '1.1',
+    },
+    {
+      age: '3',
+    },
+    {
+      age: '4',
+    },
+  ]), [1, 3, 4]);
+});
+
+/*
+test('select > index', () => {
+  assert.deepEqual(
+    select({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+        },
+        quan: ['foo.big', {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+            },
+            age: {
+              type: 'integer',
+            },
+            ding: ['$cqq', { type: 'number' }],
+          },
+        }],
+      },
+    })({
+      name: 'aaa',
+      cqq: '44.44',
+      foo: {
+        name: 'bbb',
+        dd: 'ee',
+        big: {
+          name: 'cccc',
+          age: '33.3',
+        },
+      },
+    }),
+    {
+      name: 'aaa',
+      quan: {
+        name: 'cccc',
+        age: 33,
+        ding: 44.44,
+      },
+    },
+  );
+});
+*/

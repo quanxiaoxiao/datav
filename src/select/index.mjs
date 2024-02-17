@@ -49,9 +49,28 @@ function select(express) {
   if (express.type === 'object') {
     return walkWithObject(express.properties);
   }
-  if (express.type !== 'array') {
-    throw new Error(`\`${JSON.stringify(express)}\` express invalid`);
+  if (Array.isArray(express.properties)) {
+    const walk = select(express.properties[1]);
+    return (v) => {
+      if (!Array.isArray(v)) {
+        return [];
+      }
+      const [pathname] = express.properties;
+      return v.map((d) => {
+        if (pathname === '' || pathname === '.') {
+          return walk(d);
+        }
+        return walk(getValueOfPathname(d, pathname));
+      });
+    };
   }
+  const walk = walkWithObject(express.properties);
+  return (v) => {
+    if (!Array.isArray(v)) {
+      return [];
+    }
+    return v.map((d) => walk(d));
+  };
 }
 
 export default select;

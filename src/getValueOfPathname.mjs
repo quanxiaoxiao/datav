@@ -27,7 +27,7 @@ const walk = (obj, nameList) => {
 };
 
 export default (obj, pathname) => {
-  if (typeof pathname !== 'string' || /\.$/.test(pathname)) {
+  if (typeof pathname !== 'string' || (/\.$/.test(pathname) && pathname !== '.')) {
     throw new Error('pathname invalid');
   }
   if (!Array.isArray(obj) && !_.isPlainObject(obj)) {
