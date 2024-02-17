@@ -349,7 +349,7 @@ test('select > index array', () => {
         type: 'integer',
       },
     },
-  })({ age: '33.3' }), []);
+  })({ age: '33.3' }), [{ age: 33 }]);
   assert.deepEqual(select({
     type: 'array',
     properties: ['.', { type: 'integer' }],
@@ -378,9 +378,48 @@ test('select > index array', () => {
   assert.deepEqual(
     select({
       type: 'array',
+      properties: ['$ages', { type: 'integer' }],
+    })({ name: 'aa', age: '44.4' }),
+    [],
+  );
+  assert.deepEqual(
+    select({
+      type: 'array',
       properties: ['age', { type: 'integer' }],
     })({ name: 'aa', age: '44.4' }),
-    [44],
+    [],
+  );
+  assert.deepEqual(
+    select({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+        },
+        arr: {
+          type: 'array',
+          properties: {
+            name: ['$foo.name', { type: 'string' }],
+            age: ['$big.age', { type: 'integer' }],
+          },
+        },
+      },
+    })({
+      name: 'aaa',
+      foo: {
+        name: 'bbb',
+      },
+      big: {
+        age: '99.99',
+      },
+    }),
+    {
+      name: 'aaa',
+      arr: [{
+        name: 'bbb',
+        age: 99,
+      }],
+    },
   );
 });
 
@@ -429,6 +468,93 @@ test('select > index', () => {
         jj: 66,
         ding: 44.44,
       },
+    },
+  );
+
+  assert.deepEqual(
+    select({
+      type: 'array',
+      properties: {
+        name: {
+          type: 'string',
+        },
+      },
+    })({ names: 'quan' }),
+    [{ name: null }],
+  );
+
+  assert.deepEqual(
+    select({
+      type: 'array',
+      properties: {
+        name: {
+          type: 'string',
+        },
+      },
+    })({ name: 'quan' }),
+    [{ name: 'quan' }],
+  );
+
+  assert.deepEqual(
+    select({
+      type: 'array',
+      properties: {
+      },
+    })({ names: 'quan' }),
+    [],
+  );
+
+  assert.deepEqual(
+    select({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+        },
+        arr: {
+          type: 'array',
+          properties: {
+            name: {
+              type: 'string',
+            },
+            age: ['_age', { type: 'integer' }],
+            test: ['empty', { type: 'string' }],
+            big: ['$obj.big', { type: 'number' }],
+          },
+        },
+      },
+    })({
+      name: 'root',
+      obj: {
+        big: '66.66',
+      },
+      arr: [
+        {
+          name: '11',
+          _age: '22.2',
+        },
+        {
+          name: '22',
+          _age: '23.3',
+        },
+      ],
+    }),
+    {
+      name: 'root',
+      arr: [
+        {
+          name: '11',
+          age: 22,
+          test: null,
+          big: 66.66,
+        },
+        {
+          name: '22',
+          age: 23,
+          test: null,
+          big: 66.66,
+        },
+      ],
     },
   );
 });

@@ -65,9 +65,13 @@ function select(express) {
       const [pathname] = express.properties;
       if (!Array.isArray(arr)) {
         if (pathname.startsWith('$')) {
-          return [walk(getValueOfPathname(root, pathname.slice(1)), root)];
+          const ret = walk(getValueOfPathname(root, pathname.slice(1)), root);
+          if (ret == null) {
+            return [];
+          }
+          return [ret];
         }
-        return [walk(getValueOfPathname(arr, pathname), root)];
+        return [];
       }
       return arr.map((d) => {
         if (pathname === '' || pathname === '.') {
@@ -80,8 +84,12 @@ function select(express) {
   const walk = walkWithObject(express.properties);
   return (arr, _root) => {
     const root = _root == null ? arr : _root;
-    if (!Array.isArray(root)) {
-      return [];
+    if (!Array.isArray(arr)) {
+      if (_.isEmpty(express.properties)) {
+        return [];
+      }
+      const ret = walk(arr, root);
+      return [ret];
     }
     return arr.map((d) => walk(d, root));
   };
