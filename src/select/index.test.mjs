@@ -389,12 +389,16 @@ test('select > index', () => {
               type: 'integer',
             },
             ding: ['$cqq', { type: 'number' }],
+            jj: ['$other.age', { type: 'integer' }],
           },
         }],
       },
     })({
       name: 'aaa',
       cqq: '44.44',
+      other: {
+        age: '66.6',
+      },
       foo: {
         name: 'bbb',
         dd: 'ee',
@@ -409,6 +413,7 @@ test('select > index', () => {
       quan: {
         name: 'cccc',
         age: 33,
+        jj: 66,
         ding: 44.44,
       },
     },
