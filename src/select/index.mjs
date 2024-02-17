@@ -53,7 +53,14 @@ function select(express) {
   }
   check(express);
   if (['string', 'number', 'boolean', 'integer'].includes(express.type)) {
-    return (v) => checkout(v, express.type);
+    return (v, _root) => {
+      const root = _root == null ? v : _root;
+      let value = v;
+      if (express.resolve) {
+        value = express.resolve(value, root);
+      }
+      return checkout(value, express.type);
+    };
   }
   if (express.type === 'object') {
     return walkWithObject(express.properties);

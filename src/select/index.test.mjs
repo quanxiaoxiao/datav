@@ -601,3 +601,125 @@ test('select > index', () => {
     },
   );
 });
+
+test('select > index, resolve', () => {
+  assert.equal(
+    select({
+      type: 'integer',
+      resolve: (v) => v + 1,
+    })(88),
+    89,
+  );
+  assert.equal(
+    select(['age', {
+      type: 'integer',
+      resolve: (v) => `${v + 1}`,
+    }])({ age: 88 }),
+    89,
+  );
+  assert.deepEqual(
+    select({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          resolve: (a, b) => `${a}_${b.aa}`,
+        },
+        age: {
+          type: 'integer',
+          resolve: (a) => a + 1,
+        },
+      },
+    })({
+      name: 'quan',
+      aa: 'xx',
+      age: 33,
+    }),
+    {
+      name: 'quan_xx',
+      age: 34,
+    },
+  );
+  assert.deepEqual(
+    select({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          resolve: (a, b) => `${a}_${b.aa}`,
+        },
+        age: ['big', {
+          type: 'integer',
+          resolve: (a) => a + 1,
+        }],
+      },
+    })({
+      name: 'quan',
+      aa: 'xx',
+      big: 33,
+    }),
+    {
+      name: 'quan_xx',
+      age: 34,
+    },
+  );
+  assert.deepEqual(
+    select({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          resolve: (a, b) => `${a}_${b.aa}`,
+        },
+        obj: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+            },
+            age: ['big', {
+              type: 'integer',
+              resolve: (a) => a + 1,
+            }],
+            ding: {
+              type: 'string',
+              resolve: (a, b) => `${b.name}_${a}`,
+            },
+          },
+        },
+      },
+    })({
+      name: 'quan',
+      aa: 'xx',
+      obj: {
+        name: 'rice',
+        big: 33,
+        ding: 'aaa',
+      },
+    }),
+    {
+      name: 'quan_xx',
+      obj: {
+        name: 'rice',
+        age: 34,
+        ding: 'quan_aaa',
+      },
+    },
+  );
+  assert.deepEqual(
+    select(
+      {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+          },
+          resolve: {
+            type: 'string',
+          },
+        },
+      },
+    )({ name: 'aaa', resolve: 'resolve' }),
+    { name: 'aaa', resolve: 'resolve' },
+  );
+});
