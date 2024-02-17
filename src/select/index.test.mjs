@@ -336,6 +336,12 @@ test('select > index, type with object', () => {
 test('select > index array', () => {
   assert.deepEqual(select({
     type: 'array',
+    properties: ['.', {
+      type: 'integer',
+    }],
+  })(['33.3', '22.8']), [33, 22]);
+  assert.deepEqual(select({
+    type: 'array',
     properties: {
       age: {
         type: 'integer',
