@@ -722,4 +722,21 @@ test('select > index, resolve', () => {
     )({ name: 'aaa', resolve: 'resolve' }),
     { name: 'aaa', resolve: 'resolve' },
   );
+  assert.deepEqual(
+    select(
+      {
+        type: 'object',
+        resolve: () => ({ name: 'xxx' }),
+        properties: {
+          name: {
+            type: 'string',
+          },
+          resolve: {
+            type: 'string',
+          },
+        },
+      },
+    )({ name: 'aaa', resolve: 'resolve' }),
+    { name: 'aaa', resolve: 'resolve' },
+  );
 });

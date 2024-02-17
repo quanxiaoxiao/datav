@@ -62,6 +62,9 @@ function select(express) {
       return checkout(value, express.type);
     };
   }
+  if (express.resolve) {
+    console.warn('data type `array` or `object` unspport resolve');
+  }
   if (express.type === 'object') {
     return walkWithObject(express.properties);
   }
