@@ -20,7 +20,25 @@ test('select > index', () => {
   assert.equal(select({ type: 'number' })(1.1), 1.1);
   assert.equal(select({ type: 'integer' })('1.1'), 1);
   assert.equal(select({ type: 'boolean' })('true'), true);
+  assert.equal(select({ type: 'boolean' })('false'), false);
   assert.equal(select({ type: 'boolean' })('true1'), null);
+  assert.equal(select({ type: 'number' })('33.3'), 33.3);
+  assert.equal(select({ type: 'integer' })('33.3'), 33);
+  assert.deepEqual(
+    select({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+        },
+        age: {
+          type: 'integer',
+        },
+      },
+    })({ name: 'quan', age: '22.2', foo: 'bar' }),
+    { name: 'quan', age: 22 },
+  );
+  assert.equal(select(['age', { type: 'integer' }])({ age: '33.3' }), 33);
 });
 
 test('select > index, pathname', () => {
