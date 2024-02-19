@@ -39,6 +39,7 @@ test('select > index', () => {
     { name: 'quan', age: 22 },
   );
   assert.equal(select(['age', { type: 'integer' }])({ age: '33.3' }), 33);
+  assert.equal(select(['sub.age', { type: 'integer' }])({ name: 'quan', sub: { age: 33.3 } }), 33);
 });
 
 test('select > index, pathname', () => {
