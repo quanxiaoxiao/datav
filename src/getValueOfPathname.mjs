@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 const walk = (obj, nameList) => {
   const [dataKey, ...other] = nameList;
   if (Array.isArray(obj)) {
@@ -30,7 +28,7 @@ export default (obj, pathname) => {
   if (typeof pathname !== 'string' || (/\.$/.test(pathname) && pathname !== '.')) {
     throw new Error('pathname invalid');
   }
-  if (!Array.isArray(obj) && !_.isPlainObject(obj)) {
+  if (!obj) {
     return null;
   }
   let str = pathname;
