@@ -759,3 +759,53 @@ test('select > index, resolve', () => {
     { name: 'aaa', resolve: 'resolve' },
   );
 });
+
+test('select > index, resolve pathList', () => {
+  const ret = select(
+    {
+      type: 'object',
+      properties: {
+        count: {
+          type: 'integer',
+        },
+        list: {
+          type: 'array',
+          properties: {
+            token: ['.', {
+              type: 'string',
+              resolve: (d) => `${d.name}_${d.age}`,
+            }],
+            name: {
+              type: 'string',
+            },
+          },
+        },
+      },
+    },
+  )({
+    count: 20,
+    list: [
+      {
+        name: 'big',
+        age: 11,
+      },
+      {
+        name: 'bar',
+        age: 22,
+      },
+    ],
+  });
+  assert.deepEqual(ret, {
+    count: 20,
+    list: [
+      {
+        name: 'big',
+        token: 'big_11',
+      },
+      {
+        name: 'bar',
+        token: 'bar_22',
+      },
+    ],
+  });
+});
