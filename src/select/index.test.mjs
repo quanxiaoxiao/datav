@@ -123,8 +123,7 @@ test('select > index, type with object', () => {
     'obj',
     {
       type: 'object',
-      properties: {
-      },
+      properties: {},
     },
   ])({
     name: 'quan',
@@ -134,7 +133,36 @@ test('select > index, type with object', () => {
       age: '33.3',
       big: 'foo',
     },
+  }), {
+    name: 'xxx',
+    age: '33.3',
+    big: 'foo',
+  });
+  assert.deepEqual(select([
+    'obj',
+    {
+      type: 'object',
+      properties: {},
+    },
+  ])({
+    name: 'quan',
+    age: '22.5',
+    obj: 'aaa',
   }), {});
+  assert.deepEqual(select(
+    {
+      type: 'object',
+      properties: {},
+    },
+  )({
+    name: 'quan',
+    age: '22.5',
+    obj: 'aaa',
+  }), {
+    name: 'quan',
+    age: '22.5',
+    obj: 'aaa',
+  });
   assert.deepEqual(select([
     'obj',
     {

@@ -66,6 +66,14 @@ function select(express) {
     console.warn('data type `array` or `object` unspport resolve');
   }
   if (express.type === 'object') {
+    if (_.isEmpty(express.properties)) {
+      return (v) => {
+        if (!_.isPlainObject(v)) {
+          return {};
+        }
+        return v;
+      };
+    }
     return walkWithObject(express.properties);
   }
   if (Array.isArray(express.properties)) {
