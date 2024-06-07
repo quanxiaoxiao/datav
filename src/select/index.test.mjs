@@ -271,6 +271,7 @@ test('select > index, type with object', () => {
       age: {
         type: 'number',
       },
+      ddd: ['obj.name', { type: 'string' }],
       sub: ['obj', {
         type: 'object',
         properties: {
@@ -295,6 +296,7 @@ test('select > index, type with object', () => {
   }), {
     name: 'quan',
     age: 22.5,
+    ddd: 'xxx',
     sub: {
       name: 'xxx',
       age: 33,
@@ -836,4 +838,80 @@ test('select > index, resolve pathList', () => {
       },
     ],
   });
+});
+
+test('select > index, resolve pathList 2', { only: true }, () => {
+  const ret = select(
+    {
+      type: 'object',
+      properties: {
+        count: {
+          type: 'integer',
+        },
+        list: {
+          type: 'array',
+          properties: ['.name', {
+            type: 'string',
+          }],
+        },
+      },
+    },
+  )({
+    count: 20,
+    list: [
+      {
+        name: 'big',
+        age: 11,
+      },
+      {
+        name: 'bar',
+        age: 22,
+      },
+    ],
+  });
+  assert.deepEqual(ret, {
+    count: 20,
+    list: ['big', 'bar'],
+  });
+});
+
+test('select array array array', () => {
+  const array = [[['11', 22], ['33', 44]], [[1], [2]]];
+  const ret = select({
+    type: 'array',
+    properties: ['.', {
+      type: 'array',
+      properties: ['.', {
+        type: 'array',
+        properties: ['.', { type: 'number' }],
+      }],
+    }],
+  })(array);
+  assert.deepEqual(ret, [[[11, 22], [33, 44]], [[1], [2]]]);
+});
+
+test('select object array array array', () => {
+  const obj = {
+    name: 'xxx',
+    arr: [[['11', 22], ['33', 44]], [[1], [2]]],
+  };
+  const ret = select({
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+      },
+      arr: ['arr', {
+        type: 'array',
+        properties: ['.', {
+          type: 'array',
+          properties: ['.', {
+            type: 'array',
+            properties: ['.', { type: 'number' }],
+          }],
+        }],
+      }],
+    },
+  })(obj);
+  assert.deepEqual(ret.arr, [[[11, 22], [33, 44]], [[1], [2]]]);
 });
