@@ -860,7 +860,7 @@ test('select > index, resolve pathList', () => {
   });
 });
 
-test('select > index, resolve pathList 2', { only: true }, () => {
+test('select > index, resolve pathList 2', () => {
   const ret = select(
     {
       type: 'object',
@@ -1014,14 +1014,14 @@ test('select 5555', () => {
   );
 });
 
-test('select 666', () => {
+test('select 666', { only: true }, () => {
   const ret = select({
     type: 'object',
     properties: {
-      chl: ['.', {
+      chl: {
         type: 'array',
         properties: ['$channel', { type: 'string' }],
-      }],
+      },
     },
   })({
     channel: '1',
