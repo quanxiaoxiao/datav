@@ -1,8 +1,8 @@
 /* eslint no-use-before-define: 0 */
 import _ from 'lodash';
+import { getValueOfPathname } from '@quanxiaoxiao/utils';
 import check from './check.mjs';
 import checkout from '../checkout.mjs';
-import getValueOfPathname from '../getValueOfPathname.mjs';
 
 function walkWithObject(properties) {
   const keys = Object.keys(properties);
@@ -46,9 +46,9 @@ function select(express) {
     return (obj, _root) => {
       const root = _root == null ? obj : _root;
       if (pathname.startsWith('$')) {
-        return walk(getValueOfPathname(root, pathname.slice(1)), root);
+        return walk(getValueOfPathname(pathname.slice(1))(root), root);
       }
-      return walk(getValueOfPathname(obj, pathname), root);
+      return walk(getValueOfPathname(pathname)(obj), root);
     };
   }
   check(express);
@@ -83,7 +83,7 @@ function select(express) {
       const [pathname] = express.properties;
       if (!Array.isArray(arr)) {
         if (pathname.startsWith('$')) {
-          const ret = walk(getValueOfPathname(root, pathname.slice(1)), root);
+          const ret = walk(getValueOfPathname(pathname.slice(1))(root), root);
           if (ret == null) {
             return [];
           }
@@ -95,7 +95,7 @@ function select(express) {
         if (pathname === '' || pathname === '.') {
           return walk(d, root);
         }
-        return walk(getValueOfPathname(d, pathname), root);
+        return walk(getValueOfPathname(pathname)(d), root);
       });
     };
   }

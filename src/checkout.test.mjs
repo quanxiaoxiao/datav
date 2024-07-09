@@ -69,6 +69,9 @@ test('checkout with number', () => {
   assert.equal(checkout('-1.5', 'number'), -1.5);
   assert.equal(checkout('-2.5', 'number'), -2.5);
   assert.equal(checkout('2.5', 'number'), 2.5);
+  assert.equal(checkout('2.5a', 'number'), null);
+  assert.equal(checkout('2.5.', 'number'), null);
+  assert.equal(checkout('2.5.8', 'number'), null);
   assert.equal(checkout(1, 'number'), 1);
   assert(Number.isNaN(checkout(NaN, 'number')));
 });

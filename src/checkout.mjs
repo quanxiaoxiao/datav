@@ -57,7 +57,7 @@ const map = {
   [DATA_TYPE_JSON]: (v) => {
     try {
       return JSON.parse(v);
-    } catch (error) {
+    } catch (error) { // eslint-disable-line
       return null;
     }
   },
@@ -71,7 +71,7 @@ const map = {
         return null;
       }
       return d;
-    } catch (error) {
+    } catch (error) { // eslint-disable-line
       return null;
     }
   },
@@ -82,7 +82,7 @@ const map = {
         return d;
       }
       return [];
-    } catch (error) {
+    } catch (error) { // eslint-disable-line
       return [];
     }
   },

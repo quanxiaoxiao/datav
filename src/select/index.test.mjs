@@ -695,6 +695,26 @@ test('select > index, resolve', () => {
       properties: {
         name: {
           type: 'string',
+        },
+        age: {
+          type: 'integer',
+          resolve: () => 99,
+        },
+      },
+    })({
+      name: 'quan',
+    }),
+    {
+      name: 'quan',
+      age: 99,
+    },
+  );
+  assert.deepEqual(
+    select({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
           resolve: (a, b) => `${a}_${b.aa}`,
         },
         age: ['big', {
@@ -914,4 +934,97 @@ test('select object array array array', () => {
     },
   })(obj);
   assert.deepEqual(ret.arr, [[[11, 22], [33, 44]], [[1], [2]]]);
+});
+
+test('select 222', () => {
+  const obj = {
+    data: {
+      key: 'aaaabbb',
+    },
+  };
+  assert.equal(select(['.data.key', { type: 'string' }])(obj), obj.data.key);
+});
+
+test('select 333', () => {
+  const obj = {
+    data: ['222', '333'],
+  };
+  assert.deepEqual(select(['.data', { type: 'array', properties: ['.', { type: 'string' }] }])(obj), obj.data);
+});
+
+test('select 444', () => {
+  const key = '111222';
+
+  const ret = select({
+    type: 'object',
+    properties: {
+      name: ['.', {
+        type: 'string',
+      }],
+    },
+  })(key);
+  assert.deepEqual(ret, { name: key });
+});
+
+test('select 5555', () => {
+  const data = {
+    deviceId: '101007351946',
+    channelId: '2',
+    sn: '286329',
+    name: null,
+    sumNum: 4,
+    count: 4,
+    lastTime: null,
+    recordList: [
+      {
+        deviceId: '101007351946',
+        startTime: '2024-06-25 10:09:37',
+        endTime: '2024-06-25 13:45:32',
+      },
+      {
+        deviceId: '101007351946',
+        startTime: '2024-06-25 13:47:16',
+        endTime: '2024-06-25 17:01:19',
+      },
+      {
+        deviceId: '101007351946',
+        startTime: '2024-06-25 17:01:19',
+        endTime: '2024-06-25 17:01:21',
+      },
+      {
+        deviceId: '101007351946',
+        startTime: '2024-06-25 17:01:21',
+        endTime: '2024-06-25 18:11:39',
+      },
+    ],
+  };
+  const ret = select(['.recordList', {
+    type: 'array',
+    properties: {
+      dateTimeNameStart: ['.startTime', { type: 'string' }],
+      dateTimeNameEnd: ['.endTime', { type: 'string' }],
+    },
+  }])(data);
+  assert.deepEqual(
+    ret,
+    data.recordList.map((d) => ({
+      dateTimeNameStart: d.startTime,
+      dateTimeNameEnd: d.endTime,
+    })),
+  );
+});
+
+test('select 666', () => {
+  const ret = select({
+    type: 'object',
+    properties: {
+      chl: ['.', {
+        type: 'array',
+        properties: ['$channel', { type: 'string' }],
+      }],
+    },
+  })({
+    channel: '1',
+  });
+  assert.deepEqual(ret, { chl: ['1'] });
 });
