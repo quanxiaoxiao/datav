@@ -1014,7 +1014,7 @@ test('select 5555', () => {
   );
 });
 
-test('select 666', { only: true }, () => {
+test('select 666', () => {
   const ret = select({
     type: 'object',
     properties: {
@@ -1027,4 +1027,35 @@ test('select 666', { only: true }, () => {
     channel: '1',
   });
   assert.deepEqual(ret, { chl: ['1'] });
+});
+
+test('select 777', () => {
+  const ret = select({
+    type: 'object',
+    properties: {
+      key: {
+        type: 'string',
+      },
+      params: {
+        type: 'array',
+        properties: {
+          task: ['$taskId', { type: 'number' }],
+          date: ['$dateName', { type: 'string' }],
+        },
+      },
+    },
+  })({
+    key: '123',
+    taskId: '999',
+    dateName: '2024-06-06',
+  });
+  assert.deepEqual(ret, {
+    key: '123',
+    params: [
+      {
+        task: '999',
+        date: '2024-06-06',
+      },
+    ],
+  });
 });
