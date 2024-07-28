@@ -1059,3 +1059,29 @@ test('select 777', () => {
     ],
   });
 });
+
+test('select 888', () => {
+  const ret = select({
+    type: 'object',
+    properties: {
+      dir: ['.data.0.dir', { type: 'string' }],
+      name: ['.data.0.name', { type: 'string' }],
+    },
+  })({
+    data: [
+      {
+        dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=',
+        name: 'qq1234-170619-000000-002000-01p401000000.264'
+      },
+      {
+        dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=',
+        name: 'qq1234-170619-000000-002000-01p401000000.mp4'
+      }
+    ],
+    errorcode: 200
+  });
+  assert.deepEqual(ret, {
+    dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=',
+    name: 'qq1234-170619-000000-002000-01p401000000.264'
+  });
+});
