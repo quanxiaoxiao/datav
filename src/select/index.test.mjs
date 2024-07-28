@@ -1085,3 +1085,36 @@ test('select 888', () => {
     name: 'qq1234-170619-000000-002000-01p401000000.264'
   });
 });
+
+test('select object empty properties', () => {
+  const data = {
+    code: 0,
+    data: {
+      'name': 'data111',
+      '/aaa': {
+        name: '123',
+        '/ccc': {
+          name: 'ccc',
+        },
+      },
+      '/sss': {
+        name: '999',
+      },
+    },
+  };
+  const ret = select({
+    type: 'object',
+    properties: {
+      route: ['.data', {
+        type: 'object',
+        properties: {},
+      }],
+    },
+  })(data);
+  assert.deepEqual(
+    {
+      route: data.data,
+    },
+    ret,
+  );
+});
