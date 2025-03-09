@@ -895,6 +895,30 @@ test('select > index, resolve pathList 2', () => {
   });
 });
 
+test('select array222', () => {
+  const data = {
+    data: [
+      {
+        name: 'aa',
+        age: 22,
+      },
+      {
+        name: 'bb',
+        age: 33,
+      },
+    ],
+  };
+  const ret = select(['.data', {
+    type: 'array',
+    properties: {
+      name: {
+        type: 'string',
+      },
+    },
+  }])(data);
+  assert.deepEqual(ret, [{ name: 'aa' }, { name: 'bb' }]);
+});
+
 test('select array array array', () => {
   const array = [[['11', 22], ['33', 44]], [[1], [2]]];
   const ret = select({
