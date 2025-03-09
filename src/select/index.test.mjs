@@ -1,5 +1,6 @@
-import test from 'node:test';
 import assert from 'node:assert';
+import test from 'node:test';
+
 import select from './index.mjs';
 
 test('select > index', () => {
@@ -1095,18 +1096,18 @@ test('select 888', () => {
     data: [
       {
         dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=',
-        name: 'qq1234-170619-000000-002000-01p401000000.264'
+        name: 'qq1234-170619-000000-002000-01p401000000.264',
       },
       {
         dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=',
-        name: 'qq1234-170619-000000-002000-01p401000000.mp4'
-      }
+        name: 'qq1234-170619-000000-002000-01p401000000.mp4',
+      },
     ],
-    errorcode: 200
+    errorcode: 200,
   });
   assert.deepEqual(ret, {
     dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=',
-    name: 'qq1234-170619-000000-002000-01p401000000.264'
+    name: 'qq1234-170619-000000-002000-01p401000000.264',
   });
 });
 
@@ -1114,7 +1115,7 @@ test('select object empty properties', () => {
   const data = {
     code: 0,
     data: {
-      'name': 'data111',
+      name: 'data111',
       '/aaa': {
         name: '123',
         '/ccc': {
