@@ -106,10 +106,7 @@ export default (value, type) => {
     throw new Error(`\`${type}\` invalid data type`);
   }
   if (value == null) {
-    if (type === 'array') {
-      return [];
-    }
-    return null;
+    return type === DATA_TYPE_ARRAY ? [] : null;
   }
   const valueType = typeof value;
   if (valueType !== 'string') {
