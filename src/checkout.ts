@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import { isPlainObject } from './utils.js';
 
 const DATA_TYPE_NUMBER = 'number';
 const DATA_TYPE_STRING = 'string';
@@ -128,7 +128,7 @@ export default function checkout(value: unknown, type: DataType): unknown {
         return Array.isArray(value) ? value : [];
       }
       if (type === DATA_TYPE_OBJECT) {
-        return _.isPlainObject(value) ? value : null;
+        return isPlainObject(value) ? value : null;
       }
       return value;
     }

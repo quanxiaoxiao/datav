@@ -1,7 +1,8 @@
-import { describe, it, mock } from 'node:test';
 import * as assert from 'node:assert';
-import { createDataAccessor } from './createDataAccessor.js';
+import { describe, it, mock } from 'node:test';
+
 import { arrayAccessorModule } from './createArrayAccessor.js';
+import { createDataAccessor } from './createDataAccessor.js';
 import { pathAccessorModule } from './createPathAccessor.js';
 import { dotPathModule } from './parseDotPath.js';
 

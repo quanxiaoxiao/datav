@@ -1,7 +1,6 @@
-import _ from 'lodash';
-
 import checkout from '../checkout.js';
 import { createDataAccessor } from '../createDataAccessor.js';
+import { isEmpty,isPlainObject } from '../utils.js';
 import check from './check.js';
 
 interface SelectExpress {
@@ -52,7 +51,7 @@ const select: SelectFn = (express) => {
   if (Array.isArray(express)) {
     const [pathname] = express;
     if (typeof pathname !== 'string'
-      || !_.isPlainObject(express[1])
+      || !isPlainObject(express[1])
     ) {
       throw new Error(`\`${JSON.stringify(express)}\` express invalid`);
     }
@@ -80,9 +79,9 @@ const select: SelectFn = (express) => {
     console.warn('data type `array` or `object` unspport resolve');
   }
   if (express.type === 'object') {
-    if (_.isEmpty(express.properties)) {
+    if (isEmpty(express.properties)) {
       return (v: unknown) => {
-        if (!_.isPlainObject(v)) {
+        if (!isPlainObject(v)) {
           return {};
         }
         return v;
@@ -117,7 +116,7 @@ const select: SelectFn = (express) => {
   return (arr: unknown, _root?: unknown) => {
     const root = _root == null ? arr : _root;
     if (!Array.isArray(arr)) {
-      if (_.isEmpty(express.properties)) {
+      if (isEmpty(express.properties)) {
         return [];
       }
       const ret = walk(arr, root);
