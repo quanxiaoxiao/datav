@@ -69,9 +69,9 @@ describe('createPathAccessor', () => {
         user: {
           profile: {
             name: 'Charlie',
-            email: 'charlie@example.com'
-          }
-        }
+            email: 'charlie@example.com',
+          },
+        },
       };
       assert.equal(accessor(data), 'Charlie');
     });
@@ -95,8 +95,8 @@ describe('createPathAccessor', () => {
       const data = {
         users: [
           { name: 'David', age: 28 },
-          { name: 'Eve', age: 32 }
-        ]
+          { name: 'Eve', age: 32 },
+        ],
       };
       // 行为取决于 createArrayAccessor 的实现
       const result = accessor(data);
@@ -107,7 +107,7 @@ describe('createPathAccessor', () => {
       const accessor = createPathAccessor(['0', 'name']);
       const data = [
         { name: 'Frank', age: 35 },
-        { name: 'Grace', age: 29 }
+        { name: 'Grace', age: 29 },
       ];
       const result = accessor(data);
       assert.ok(result !== undefined);
@@ -120,14 +120,14 @@ describe('createPathAccessor', () => {
           departments: [
             {
               name: 'Engineering',
-              manager: { name: 'Helen', id: 101 }
+              manager: { name: 'Helen', id: 101 },
             },
             {
               name: 'Sales',
-              manager: { name: 'Ivan', id: 102 }
-            }
-          ]
-        }
+              manager: { name: 'Ivan', id: 102 },
+            },
+          ],
+        },
       };
       const result = accessor(data);
       assert.ok(result !== undefined);
@@ -183,7 +183,7 @@ describe('createPathAccessor', () => {
 
     test('数字字符串键名', () => {
       const accessor = createPathAccessor(['123']);
-      const data = { '123': 'numeric key' };
+      const data = { 123: 'numeric key' };
       assert.equal(accessor(data), 'numeric key');
     });
 

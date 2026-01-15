@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 import checkout from '../checkout.js';
-import getValueOfPathname from '../getValueOfPathname.js';
+import { createDataAccessor } from '../createDataAccessor.js';
 import check from './check.js';
 
 interface SelectExpress {
@@ -60,9 +60,9 @@ const select: SelectFn = (express) => {
     return (obj: unknown, _root?: unknown) => {
       const root = _root == null ? obj : _root;
       if (pathname.startsWith('$')) {
-        return walk(getValueOfPathname(pathname.slice(1))(root), root);
+        return walk(createDataAccessor(pathname.slice(1))(root), root);
       }
-      return walk(getValueOfPathname(pathname)(obj), root);
+      return walk(createDataAccessor(pathname)(obj), root);
     };
   }
   check(express);
@@ -97,7 +97,7 @@ const select: SelectFn = (express) => {
       const [pathname] = express.properties as [string, SelectExpress];
       if (!Array.isArray(arr)) {
         if (pathname.startsWith('$')) {
-          const ret = walk(getValueOfPathname(pathname.slice(1))(root), root);
+          const ret = walk(createDataAccessor(pathname.slice(1))(root), root);
           if (ret == null) {
             return [];
           }
@@ -109,7 +109,7 @@ const select: SelectFn = (express) => {
         if (pathname === '' || pathname === '.') {
           return walk(d, root);
         }
-        return walk(getValueOfPathname(pathname)(d), root);
+        return walk(createDataAccessor(pathname)(d), root);
       });
     };
   }
