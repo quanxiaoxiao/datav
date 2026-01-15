@@ -1,4 +1,4 @@
-import Ajv from 'ajv';
+import { Ajv } from 'ajv';
 
 export interface ExpressSchema {
   type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
@@ -6,12 +6,11 @@ export interface ExpressSchema {
   resolve?: (value: unknown, root: unknown) => unknown;
 }
 
-const ajv = new Ajv.default();
+const ajv = new Ajv();
 
 const schemaValidationRules = {
   type: 'object',
   anyOf: [
-    // 对象类型规则
     {
       properties: {
         type: { enum: ['object'] },
@@ -19,7 +18,6 @@ const schemaValidationRules = {
       },
       required: ['type', 'properties'],
     },
-    // 数组类型规则
     {
       properties: {
         type: { enum: ['array'] },
@@ -41,7 +39,6 @@ const schemaValidationRules = {
       },
       required: ['type', 'properties'],
     },
-    // 基础类型规则
     {
       properties: {
         type: { enum: ['string', 'number', 'boolean', 'integer'] },

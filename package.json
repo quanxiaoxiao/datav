@@ -1,6 +1,6 @@
 {
   "name": "@quanxiaoxiao/datav",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Data transformation utility with type conversion, path access, and schema-driven data transformation",
   "type": "module",
   "keywords": [
@@ -42,7 +42,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
