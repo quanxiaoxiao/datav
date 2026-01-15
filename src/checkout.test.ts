@@ -51,7 +51,7 @@ test('checkout with integer', () => {
   assert.equal(checkout('-3.1', 'integer'), -3);
   assert.equal(checkout(3.1, 'integer'), 3);
   assert.equal(checkout(1, 'integer'), 1);
-  assert(Number.isNaN(checkout(NaN, 'integer')));
+  assert.equal(checkout(NaN, 'integer'), null);
 });
 
 test('checkout with number', () => {

@@ -8,93 +8,105 @@ const DATA_TYPE_ARRAY = 'array';
 const DATA_TYPE_OBJECT = 'object';
 const DATA_TYPE_INTEGER = 'integer';
 
-type DataType = typeof DATA_TYPE_NUMBER | typeof DATA_TYPE_STRING | typeof DATA_TYPE_BOOLEAN |
-                typeof DATA_TYPE_JSON | typeof DATA_TYPE_ARRAY | typeof DATA_TYPE_OBJECT |
-                typeof DATA_TYPE_INTEGER;
+type DataType =
+  | typeof DATA_TYPE_NUMBER
+  | typeof DATA_TYPE_STRING
+  | typeof DATA_TYPE_BOOLEAN
+  | typeof DATA_TYPE_JSON
+  | typeof DATA_TYPE_ARRAY
+  | typeof DATA_TYPE_OBJECT
+  | typeof DATA_TYPE_INTEGER;
 
-type ValueTransformer = (v: unknown) => unknown;
+type ValueTransformer = (value: unknown) => unknown;
 
-const map: Record<DataType, ValueTransformer> = {
-  [DATA_TYPE_STRING]: (v) => {
-    if (typeof v !== 'string') {
-      const strVal = v as { toString?: () => string };
-      return strVal.toString ? `${strVal.toString()}` : JSON.stringify(v);
+const typeTransformers: Record<DataType, ValueTransformer> = {
+  [DATA_TYPE_STRING]: (value) => {
+    if (typeof value === 'string') {
+      return value;
     }
-    return v;
+    const strVal = value as { toString?: () => string };
+    return strVal.toString ? strVal.toString() : JSON.stringify(value);
   },
-  [DATA_TYPE_INTEGER]: (v) => {
-    if (Number.isNaN(v)) {
-      return v;
-    }
-    if (v === '') {
+
+  [DATA_TYPE_INTEGER]: (value) => {
+    if (value === '' || value == null) {
       return null;
     }
-    const type = typeof v;
-    if (type !== 'number' && type !== 'string') {
+
+    const valueType = typeof value;
+    if (valueType !== 'number' && valueType !== 'string') {
       return null;
     }
-    const number = Number(v);
+
+    const number = Number(value);
     if (Number.isNaN(number)) {
       return null;
     }
-    if (`${number}` !== `${v}`) {
+
+    if (String(number) !== String(value)) {
       return null;
     }
+
     return parseInt(number.toString(), 10);
   },
-  [DATA_TYPE_NUMBER]: (v) => {
-    if (v === '') {
+
+  [DATA_TYPE_NUMBER]: (value) => {
+    if (value === '' || value == null) {
       return null;
     }
-    const number = Number(v);
+
+    const number = Number(value);
     if (Number.isNaN(number)) {
       return null;
     }
-    if (`${number}` !== `${v}`) {
+
+    if (String(number) !== String(value)) {
       return null;
     }
+
     return number;
   },
-  [DATA_TYPE_BOOLEAN]: (v) => {
-    if (v !== 'false' && v !== 'true') {
+
+  [DATA_TYPE_BOOLEAN]: (value) => {
+    if (value !== 'false' && value !== 'true') {
       return null;
     }
-    return v === 'true';
+    return value === 'true';
   },
-  [DATA_TYPE_JSON]: (v) => {
+
+  [DATA_TYPE_JSON]: (value) => {
     try {
-      return JSON.parse(v as string);
+      return JSON.parse(value as string);
     } catch {
       return null;
     }
   },
-  [DATA_TYPE_OBJECT]: (v) => {
+
+  [DATA_TYPE_OBJECT]: (value) => {
     try {
-      const d = JSON.parse(v as string);
-      if (Array.isArray(d)) {
+      const parsed = JSON.parse(value as string);
+
+      if (Array.isArray(parsed) || typeof parsed !== 'object') {
         return null;
       }
-      if (typeof d !== 'object') {
-        return null;
-      }
-      return d;
+
+      return parsed;
     } catch {
       return null;
     }
   },
-  [DATA_TYPE_ARRAY]: (v) => {
+
+  [DATA_TYPE_ARRAY]: (value) => {
     try {
-      const d = JSON.parse(v as string);
-      if (Array.isArray(d)) {
-        return d;
-      }
-      return [];
+      const parsed = JSON.parse(value as string);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
   },
 };
 
+// 类型名称映射表(用于 typeof 检查)
 const typeNameMap: Record<DataType, string> = {
   [DATA_TYPE_NUMBER]: 'number',
   [DATA_TYPE_STRING]: 'string',
@@ -105,24 +117,26 @@ const typeNameMap: Record<DataType, string> = {
   [DATA_TYPE_OBJECT]: 'object',
 };
 
-export default function checkout(value: unknown, type: DataType): unknown {
+export default function parseValueByType(value: unknown, type: DataType): unknown {
   if (type == null) {
     throw new Error('data type is empty');
   }
-  if (!Object.hasOwnProperty.call(map, type)) {
-    throw new Error(`\`${type}\` invalid data type`);
+
+  if (!Object.hasOwnProperty.call(typeTransformers, type)) {
+    throw new Error(`\`${type}\` is an invalid data type`);
   }
+
   if (value == null) {
     return type === DATA_TYPE_ARRAY ? [] : null;
   }
+
   const valueType = typeof value;
+
   if (valueType !== 'string') {
-    if (type === DATA_TYPE_INTEGER) {
-      return map[DATA_TYPE_INTEGER](value);
+    if (type === DATA_TYPE_INTEGER || type === DATA_TYPE_STRING) {
+      return typeTransformers[type](value);
     }
-    if (type === DATA_TYPE_STRING) {
-      return map[DATA_TYPE_STRING](value);
-    }
+
     if (valueType === typeNameMap[type]) {
       if (type === DATA_TYPE_ARRAY) {
         return Array.isArray(value) ? value : [];
@@ -132,7 +146,20 @@ export default function checkout(value: unknown, type: DataType): unknown {
       }
       return value;
     }
+
     return type === DATA_TYPE_ARRAY ? [] : null;
   }
-  return map[type](value);
+
+  return typeTransformers[type](value);
 }
+
+export {
+  DATA_TYPE_NUMBER,
+  DATA_TYPE_STRING,
+  DATA_TYPE_BOOLEAN,
+  DATA_TYPE_JSON,
+  DATA_TYPE_ARRAY,
+  DATA_TYPE_OBJECT,
+  DATA_TYPE_INTEGER,
+  type DataType,
+};
