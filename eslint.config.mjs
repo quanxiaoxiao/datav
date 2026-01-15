@@ -8,6 +8,8 @@ export default [
     ignores: [
       'node_modules/*',
       'dist/*',
+      '**/*.test.ts',
+      '**/*.test.tsx',
     ],
   },
   js.configs.recommended,

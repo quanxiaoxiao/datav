@@ -1,12 +1,12 @@
 import Ajv from 'ajv';
 
-interface ExpressSchema {
+export interface ExpressSchema {
   type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
   properties?: Record<string, unknown> | [string, object];
   resolve?: (value: unknown, root: unknown) => unknown;
 }
 
-const ajv = new Ajv();
+const ajv = new Ajv.default();
 
 const schemaValidationRules = {
   type: 'object',

@@ -1,7 +1,7 @@
 import { createDataAccessor } from './createDataAccessor.js';
 import { parseValueByType } from './parseValueByType.js';
 import { isEmpty, isPlainObject } from './utils.js';
-import { validateExpressSchema } from './validateExpressSchema.js';
+import { type ExpressSchema,validateExpressSchema } from './validateExpressSchema.js';
 
 interface SchemaExpress {
   type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
@@ -15,7 +15,9 @@ interface FieldHandler {
   transform: (data: unknown, root: unknown) => unknown;
 }
 
-type TransformFn = (schema: SchemaExpress | [string, SchemaExpress]) => (data: unknown, root?: unknown) => unknown;
+type SchemaTransformer = (data: unknown, root?: unknown) => unknown;
+
+type TransformFn = (schema: SchemaExpress | [string, SchemaExpress]) => SchemaTransformer;
 
 const createObjectTransformer = (
   properties: Record<string, SchemaExpress>,
@@ -56,7 +58,7 @@ const extractDataByPath = (pathname: string, data: unknown, root: unknown): unkn
 /**
  * 创建基础类型转换器
  */
-const createPrimitiveTransformer = (schema: SchemaExpress): TransformFn => {
+const createPrimitiveTransformer = (schema: SchemaExpress): SchemaTransformer => {
   return (value: unknown, root?: unknown) => {
     const rootData = root ?? value;
     const resolvedValue = schema.resolve ? schema.resolve(value, rootData) : value;
@@ -67,7 +69,7 @@ const createPrimitiveTransformer = (schema: SchemaExpress): TransformFn => {
 /**
  * 创建简单对象转换器（无 properties）
  */
-const createPlainObjectTransformer = (): TransformFn => {
+const createPlainObjectTransformer = (): SchemaTransformer => {
   return (value: unknown) => {
     return isPlainObject(value) ? value : {};
   };
@@ -79,7 +81,7 @@ const createPlainObjectTransformer = (): TransformFn => {
 const createArrayTransformer = (
   properties: [string, SchemaExpress],
   createTransform: TransformFn,
-): TransformFn => {
+): SchemaTransformer => {
   const [pathname, itemSchema] = properties;
   const itemTransform = createTransform(itemSchema);
 
@@ -109,7 +111,7 @@ const createArrayTransformer = (
 const createArrayObjectTransformer = (
   properties: Record<string, SchemaExpress>,
   createTransform: TransformFn,
-): TransformFn => {
+): SchemaTransformer => {
   const objectTransform = createObjectTransformer(properties, createTransform);
 
   return (data: unknown, root?: unknown) => {
@@ -145,7 +147,7 @@ export const createDataTransformer: TransformFn = (schema) => {
     };
   }
 
-  validateExpressSchema(schema);
+  validateExpressSchema(schema as ExpressSchema);
 
   if (['string', 'number', 'boolean', 'integer'].includes(schema.type)) {
     return createPrimitiveTransformer(schema);

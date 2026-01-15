@@ -1,15 +1,50 @@
 {
   "name": "@quanxiaoxiao/datav",
   "version": "0.4.0",
+  "description": "Data transformation utility with type conversion, path access, and schema-driven data transformation",
   "type": "module",
+  "keywords": [
+    "data",
+    "transform",
+    "schema",
+    "typescript",
+    "type-conversion",
+    "util"
+  ],
+  "author": "quanxiaoxiao",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/quanxiaoxiao/datav.git"
+  },
+  "bugs": {
+    "url": "https://github.com/quanxiaoxiao/datav/issues"
+  },
+  "homepage": "https://github.com/quanxiaoxiao/datav#readme",
+  "files": [
+    "src",
+    "dist",
+    "package.json",
+    "README.md"
+  ],
+  "sideEffects": false,
   "scripts": {
     "test": "npx tsx --test src/checkout.test.ts src/parseDotPath.test.ts src/select/check.test.ts src/select/index.test.ts",
-    "build": "tsc",
-    "check": "tsc --noEmit"
+    "build": "tsc && rm -rf dist/*.test.* dist/**/*.test.*",
+    "check": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
     "./package.json": "./package.json"
   },
   "devDependencies": {
