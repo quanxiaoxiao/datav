@@ -1,6 +1,5 @@
 import Ajv from 'ajv';
 
-// 定义 Schema 接口
 interface ExpressSchema {
   type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
   properties?: Record<string, unknown> | [string, object];
@@ -9,7 +8,6 @@ interface ExpressSchema {
 
 const ajv = new Ajv();
 
-// 定义验证规则
 const schemaValidationRules = {
   type: 'object',
   anyOf: [
@@ -62,5 +60,3 @@ export function validateExpressSchema(schema: ExpressSchema): void {
     throw new Error(`Invalid schema: ${schemaStr}. Validation errors: ${errorsStr}`);
   }
 }
-
-export default validateExpressSchema;

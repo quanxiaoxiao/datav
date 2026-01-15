@@ -1,75 +1,75 @@
 import assert from 'node:assert';
 import test from 'node:test';
 
-import check from './check.js';
+import { validateExpressSchema } from './validateExpressSchema.js';
 
-test('select > check', () => {
+test('select > validateExpressSchema', () => {
   assert.throws(() => {
-    check([]);
+    validateExpressSchema([]);
   });
   assert.throws(() => {
-    check('number');
+    validateExpressSchema('number');
   });
   assert.throws(() => {
-    check('integer');
+    validateExpressSchema('integer');
   });
   assert.throws(() => {
-    check({});
+    validateExpressSchema({});
   });
   assert.throws(() => {
-    check({
+    validateExpressSchema({
       type: 'object',
       properties: [],
     });
   });
   assert.throws(() => {
-    check({
+    validateExpressSchema({
       type: 'xxx',
     });
   });
   assert.throws(() => {
-    check({
+    validateExpressSchema({
       type: 'json',
     });
   });
   assert.throws(() => {
-    check({
+    validateExpressSchema({
       type: 'array',
       properties: [],
     });
   });
   assert.throws(() => {
-    check({
+    validateExpressSchema({
       type: 'array',
       properties: ['dataKey', []],
     });
   });
-  check({
+  validateExpressSchema({
     type: 'string',
   });
-  check({
+  validateExpressSchema({
     type: 'string',
     properties: ['dataKey'],
   });
-  check({
+  validateExpressSchema({
     type: 'string',
     properties: ['dataKey', []],
   });
-  check({
+  validateExpressSchema({
     type: 'string',
     properties: ['dataKey', {}],
   });
-  check({
+  validateExpressSchema({
     type: 'object',
     properties: {
     },
   });
-  check({
+  validateExpressSchema({
     type: 'array',
     properties: {
     },
   });
-  check({
+  validateExpressSchema({
     type: 'array',
     properties: ['dataKey', {}],
   });

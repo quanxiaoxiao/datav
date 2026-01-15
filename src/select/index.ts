@@ -1,7 +1,7 @@
 import { createDataAccessor } from '../createDataAccessor.js';
 import { parseValueByType } from '../parseValueByType.js';
 import { isEmpty,isPlainObject } from '../utils.js';
-import check from './check.js';
+import { validateExpressSchema } from './validateExpressSchema.js';
 
 interface SelectExpress {
   type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
@@ -64,7 +64,7 @@ const select: SelectFn = (express) => {
       return walk(createDataAccessor(pathname)(obj), root);
     };
   }
-  check(express);
+  validateExpressSchema(express);
   if (['string', 'number', 'boolean', 'integer'].includes(express.type)) {
     return (v: unknown, _root?: unknown) => {
       const root = _root == null ? v : _root;
