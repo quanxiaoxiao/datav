@@ -1,4 +1,4 @@
-import assert from 'node:assert';
+import * as assert from 'node:assert';
 import { mock, test } from 'node:test';
 
 import { createDataTransformer } from './createDataTransformer.js';
