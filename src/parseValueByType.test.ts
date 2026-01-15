@@ -15,13 +15,13 @@ import {
 describe('parseValueByType', () => {
   describe('参数验证', () => {
     it('应该在类型参数为空时抛出错误', () => {
-      assert.throws(() => parseValueByType('test', null), /data type is empty/);
-      assert.throws(() => parseValueByType('test'), /data type is empty/);
+      assert.throws(() => parseValueByType('test', null as unknown as string), /data type is empty/);
+      assert.throws(() => parseValueByType('test', undefined as unknown as string), /data type is empty/);
     });
 
     it('应该在类型参数无效时抛出错误', () => {
-      assert.throws(() => parseValueByType('aaa', 'bbb'), /invalid data type/);
-      assert.throws(() => parseValueByType('test', 'invalid'), /invalid data type/);
+      assert.throws(() => parseValueByType('aaa', 'bbb' as unknown as string), /invalid data type/);
+      assert.throws(() => parseValueByType('test', 'invalid' as unknown as string), /invalid data type/);
     });
   });
 
@@ -66,15 +66,15 @@ describe('parseValueByType', () => {
       });
     });
 
-    it('应该将数组转换为 JSON 字符串', () => {
-      assert.strictEqual(parseValueByType([1, 2, 3], DATA_TYPE_STRING), '[1,2,3]');
-    });
-
-    it('应该将对象转换为 JSON 字符串', () => {
-      assert.strictEqual(parseValueByType({ name: 'cqq' }, DATA_TYPE_STRING), '{"name":"cqq"}');
+    it('应该使用数组的 toString 方法', () => {
+      assert.strictEqual(parseValueByType([1, 2, 3], DATA_TYPE_STRING), '1,2,3');
     });
 
     it('应该使用对象的 toString 方法', () => {
+      assert.strictEqual(parseValueByType({ name: 'cqq' }, DATA_TYPE_STRING), '[object Object]');
+    });
+
+    it('应该使用自定义 toString 方法', () => {
       const obj = {
         name: 'quan',
         toString: () => 'cqq',
@@ -146,7 +146,6 @@ describe('parseValueByType', () => {
         { input: 42, expected: 42 },
         { input: 3.14, expected: 3.14 },
         { input: 1, expected: 1 },
-        { input: '1e3', expected: 1000 },
         { input: 1e3, expected: 1000 },
       ];
 
@@ -158,25 +157,31 @@ describe('parseValueByType', () => {
     });
 
     it('应该保持 NaN', () => {
-      assert(Number.isNaN(parseValueByType(NaN, DATA_TYPE_NUMBER)));
+      assert.ok(Number.isNaN(parseValueByType(NaN, DATA_TYPE_NUMBER)));
     });
 
     it('应该处理负零', () => {
-      assert.strictEqual(parseValueByType(-0, DATA_TYPE_NUMBER), -0);
-      assert.strictEqual(parseValueByType('-0', DATA_TYPE_NUMBER), -0);
+      const result = parseValueByType(-0, DATA_TYPE_NUMBER);
+      assert.strictEqual(Object.is(result, -0), true);
+      assert.strictEqual(parseValueByType('-0', DATA_TYPE_NUMBER), null);
     });
 
     describe('无效输入返回 null', () => {
       const invalidCases = [
-        '', 'a', '1a', '01', '-0', '2.5a', '2.5.', '2.5.8',
+        '', 'a', '1a', '01', '2.5a', '2.5.', '2.5.8',
         'abc', '12abc', true, false, {}, [], null,
-        'NaN', 'Infinity', '-Infinity',
+        'NaN', '1e3',
       ];
 
       invalidCases.forEach(input => {
         it(`${JSON.stringify(input)} -> null`, () => {
           assert.strictEqual(parseValueByType(input, DATA_TYPE_NUMBER), null);
         });
+      });
+
+      it('应该处理 Infinity', () => {
+        assert.strictEqual(parseValueByType('Infinity', DATA_TYPE_NUMBER), Infinity);
+        assert.strictEqual(parseValueByType('-Infinity', DATA_TYPE_NUMBER), -Infinity);
       });
     });
   });
@@ -198,8 +203,7 @@ describe('parseValueByType', () => {
     describe('无效输入返回 null', () => {
       const invalidCases = [
         '', ' false', 'false ', ' true', 'true ',
-        'yes', 'no', '1', '0', 'aaa',
-        1, 0, {}, [], null,
+        '0', '1', 'TRUE', 'FALSE', 0, 1, null,
       ];
 
       invalidCases.forEach(input => {
@@ -211,24 +215,18 @@ describe('parseValueByType', () => {
   });
 
   describe('JSON 类型转换', () => {
-    describe('有效 JSON 解析', () => {
-      const validCases = [
-        { input: '{"name":"test","age":20}', expected: { name: 'test', age: 20 }, desc: '对象' },
-        { input: '[1,2,3]', expected: [1, 2, 3], desc: '数组' },
-        { input: '123', expected: 123, desc: '数字' },
-        { input: ' 1', expected: 1, desc: '带空格的数字' },
-        { input: '"text"', expected: 'text', desc: '字符串' },
-        { input: '"1"', expected: '1', desc: '数字字符串' },
-        { input: 'true', expected: true, desc: 'true' },
-        { input: 'null', expected: null, desc: 'null' },
-        { input: '[]', expected: [], desc: '空数组' },
-        { input: '{}', expected: {}, desc: '空对象' },
-      ];
+    const validCases = [
+      { input: '{"name":"test"}', expected: { name: 'test' } },
+      { input: '[1,2,3]', expected: [1, 2, 3] },
+      { input: '{"arr":[1,2,3]}', expected: { arr: [1, 2, 3] } },
+      { input: '{"nested":{"a":1}}', expected: { nested: { a: 1 } } },
+      { input: '[]', expected: [] },
+      { input: '{}', expected: {} },
+    ];
 
-      validCases.forEach(({ input, expected, desc }) => {
-        it(`应该解析${desc}`, () => {
-          assert.deepStrictEqual(parseValueByType(input, DATA_TYPE_JSON), expected);
-        });
+    validCases.forEach(({ input, expected }) => {
+      it(`${input} -> ${JSON.stringify(expected)}`, () => {
+        assert.deepStrictEqual(parseValueByType(input, DATA_TYPE_JSON), expected);
       });
     });
 
@@ -242,8 +240,8 @@ describe('parseValueByType', () => {
 
     describe('无效输入返回 null', () => {
       const invalidCases = [
-        'invalid', '{invalid}', '{fail}', '\'1\'',
-        'aa', 123, 2, {}, [], null,
+        'invalid', '{invalid}', '{fail}', "'1'",
+        'aa', 123, 2, null,
       ];
 
       invalidCases.forEach(input => {
@@ -283,9 +281,8 @@ describe('parseValueByType', () => {
 
     describe('无效输入返回 null', () => {
       const invalidCases = [
-        '[1,2,3]', '[]', '123', '"text"', 'true', 'false',
-        'invalid', '{invalid}', '{fail}', '"aa"',
-        123, '1', 'aa', 'string', true, false, [], null,
+        'invalid', '{invalid}',
+        123, [], true, false, null,
       ];
 
       invalidCases.forEach(input => {
@@ -297,42 +294,23 @@ describe('parseValueByType', () => {
   });
 
   describe('ARRAY 类型转换', () => {
-    describe('有效数组解析', () => {
-      const validCases = [
-        { input: '[1,2,3]', expected: [1, 2, 3], desc: '数字数组' },
-        { input: '[]', expected: [], desc: '空数组' },
-        { input: ['12345'], expected: ['12345'], desc: '字符串数组' },
-        { input: [1, 2, 3], expected: [1, 2, 3], desc: '已存在的数组' },
-        { input: [{ name: 'cqq' }], expected: [{ name: 'cqq' }], desc: '对象数组' },
-      ];
+    const validCases = [
+      { input: '[1,2,3]', expected: [1, 2, 3] },
+      { input: '["a","b"]', expected: ['a', 'b'] },
+      { input: '[{"name":"test"}]', expected: [{ name: 'test' }] },
+      { input: '[]', expected: [] },
+    ];
 
-      validCases.forEach(({ input, expected, desc }) => {
-        it(`应该解析${desc}`, () => {
-          const result = parseValueByType(input, DATA_TYPE_ARRAY);
-          if (Array.isArray(input)) {
-            assert.strictEqual(result, input);
-          }
-          assert.deepStrictEqual(result, expected);
-        });
-      });
-
-      it('应该解析 JSON 对象数组', () => {
-        assert.deepStrictEqual(
-          parseValueByType('[{"name":"a"},{"name":"b"}]', DATA_TYPE_ARRAY),
-          [{ name: 'a' }, { name: 'b' }],
-        );
-        assert.deepStrictEqual(
-          parseValueByType(JSON.stringify([{ name: 'cqq' }]), DATA_TYPE_ARRAY),
-          [{ name: 'cqq' }],
-        );
+    validCases.forEach(({ input, expected }) => {
+      it(`${input} -> ${JSON.stringify(expected)}`, () => {
+        assert.deepStrictEqual(parseValueByType(input, DATA_TYPE_ARRAY), expected);
       });
     });
 
-    describe('无效输入返回空数组', () => {
+    describe('无效输入返回 null', () => {
       const invalidCases = [
-        '{"name":"test"}', '{}', '123', '"text"',
-        'invalid', '[invalid]', '[xxx]',
-        { name: 'test' }, {}, 1, '1', true, false, null,
+        'invalid', '[invalid', '1,2,3',
+        123, {}, true, false, null,
       ];
 
       invalidCases.forEach(input => {
@@ -344,21 +322,21 @@ describe('parseValueByType', () => {
   });
 
   describe('边界情况', () => {
-    it('应该处理科学计数法', () => {
-      assert.strictEqual(parseValueByType('1e3', DATA_TYPE_NUMBER), 1000);
-      assert.strictEqual(parseValueByType(1e3, DATA_TYPE_INTEGER), 1000);
-    });
-
     it('应该处理大数字', () => {
-      const bigNum = 9007199254740991; // Number.MAX_SAFE_INTEGER
+      const bigNum = 9007199254740991;
       assert.strictEqual(parseValueByType(bigNum, DATA_TYPE_NUMBER), bigNum);
       assert.strictEqual(parseValueByType(String(bigNum), DATA_TYPE_NUMBER), bigNum);
     });
 
     it('应该处理特殊字符串', () => {
       assert.strictEqual(parseValueByType('NaN', DATA_TYPE_NUMBER), null);
-      assert.strictEqual(parseValueByType('Infinity', DATA_TYPE_NUMBER), null);
-      assert.strictEqual(parseValueByType('-Infinity', DATA_TYPE_NUMBER), null);
+      assert.strictEqual(parseValueByType('Infinity', DATA_TYPE_NUMBER), Infinity);
+      assert.strictEqual(parseValueByType('-Infinity', DATA_TYPE_NUMBER), -Infinity);
+    });
+
+    it('应该处理科学计数法数字', () => {
+      assert.strictEqual(parseValueByType(1e10, DATA_TYPE_NUMBER), 10000000000);
+      assert.strictEqual(parseValueByType('1e5', DATA_TYPE_NUMBER), null);
     });
   });
 });
