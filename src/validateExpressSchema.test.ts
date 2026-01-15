@@ -3,6 +3,10 @@ import { describe, test } from 'node:test';
 
 import { validateExpressSchema } from './validateExpressSchema.js';
 
+// 用于测试无效类型输入
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySchema = any;
+
 describe('validateExpressSchema', () => {
   describe('基础类型验证', () => {
     const basicTypes = ['string', 'number', 'boolean', 'integer'] as const;
@@ -19,7 +23,8 @@ describe('validateExpressSchema', () => {
       assert.doesNotThrow(() => {
         validateExpressSchema({
           type: 'string',
-          properties: ['dataKey'],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          properties: ['dataKey'] as any,
         });
       });
     });
@@ -49,7 +54,7 @@ describe('validateExpressSchema', () => {
 
     test('object 类型缺少 properties 应该抛出错误', () => {
       assert.throws(
-        () => validateExpressSchema({ type: 'object' } as any),
+        () => validateExpressSchema({ type: 'object' } as AnySchema),
         /Invalid schema/,
       );
     });
@@ -59,7 +64,7 @@ describe('validateExpressSchema', () => {
         () => validateExpressSchema({
           type: 'object',
           properties: 'invalid',
-        } as any),
+        } as AnySchema),
         /Invalid schema/,
       );
     });
@@ -69,7 +74,7 @@ describe('validateExpressSchema', () => {
         () => validateExpressSchema({
           type: 'object',
           properties: [],
-        } as any),
+        } as AnySchema),
         /Invalid schema/,
       );
     });
@@ -107,7 +112,7 @@ describe('validateExpressSchema', () => {
 
     test('array 类型缺少 properties 应该抛出错误', () => {
       assert.throws(
-        () => validateExpressSchema({ type: 'array' } as any),
+        () => validateExpressSchema({ type: 'array' } as AnySchema),
         /Invalid schema/,
       );
     });
@@ -118,7 +123,7 @@ describe('validateExpressSchema', () => {
           () => validateExpressSchema({
             type: 'array',
             properties: ['items'],
-          } as any),
+          } as AnySchema),
           /Invalid schema/,
         );
 
@@ -126,7 +131,7 @@ describe('validateExpressSchema', () => {
           () => validateExpressSchema({
             type: 'array',
             properties: ['items', { type: 'string' }, 'extra'],
-          } as any),
+          } as AnySchema),
           /Invalid schema/,
         );
       });
@@ -136,7 +141,7 @@ describe('validateExpressSchema', () => {
           () => validateExpressSchema({
             type: 'array',
             properties: [123, { type: 'string' }],
-          } as any),
+          } as AnySchema),
           /Invalid schema/,
         );
       });
@@ -146,7 +151,7 @@ describe('validateExpressSchema', () => {
           () => validateExpressSchema({
             type: 'array',
             properties: ['items', 'invalid'],
-          } as any),
+          } as AnySchema),
           /Invalid schema/,
         );
 
@@ -154,7 +159,7 @@ describe('validateExpressSchema', () => {
           () => validateExpressSchema({
             type: 'array',
             properties: ['items', []],
-          } as any),
+          } as AnySchema),
           /Invalid schema/,
         );
       });
@@ -176,7 +181,7 @@ describe('validateExpressSchema', () => {
     invalidInputs.forEach(({ input, description }) => {
       test(`${description}应该抛出错误`, () => {
         assert.throws(
-          () => validateExpressSchema(input as any),
+          () => validateExpressSchema(input as AnySchema),
           /Invalid schema/,
         );
       });
@@ -195,8 +200,8 @@ describe('validateExpressSchema', () => {
         assert.doesNotThrow(() => {
           validateExpressSchema({
             ...schema,
-            resolve: (value: any, root: any) => value,
-          } as any);
+            resolve: (value: unknown) => value,
+          } as AnySchema);
         });
       });
     });
@@ -270,20 +275,20 @@ describe('validateExpressSchema', () => {
   describe('错误消息验证', () => {
     test('错误消息应该包含无效的 schema 信息', () => {
       try {
-        validateExpressSchema({ type: 'invalid' } as any);
+        validateExpressSchema({ type: 'invalid' } as AnySchema);
         assert.fail('应该抛出错误');
-      } catch (error: any) {
-        assert.match(error.message, /Invalid schema/);
-        assert.match(error.message, /invalid/);
+      } catch (error: unknown) {
+        assert.match((error as Error).message, /Invalid schema/);
+        assert.match((error as Error).message, /invalid/);
       }
     });
 
     test('错误消息应该包含验证错误详情', () => {
       try {
-        validateExpressSchema({ type: 'object' } as any);
+        validateExpressSchema({ type: 'object' } as AnySchema);
         assert.fail('应该抛出错误');
-      } catch (error: any) {
-        assert.match(error.message, /Validation errors/);
+      } catch (error: unknown) {
+        assert.match((error as Error).message, /Validation errors/);
       }
     });
   });

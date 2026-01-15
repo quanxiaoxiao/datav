@@ -116,16 +116,16 @@ describe('createArrayAccessor', () => {
     });
 
     it('应该拒绝无效的索引类型', () => {
-      const accessor = createArrayAccessor(null as any);
+      const accessor = createArrayAccessor(null as unknown);
       assert.strictEqual(accessor(testArray), null);
 
-      const accessor2 = createArrayAccessor(undefined as any);
+      const accessor2 = createArrayAccessor(undefined as unknown);
       assert.strictEqual(accessor2(testArray), null);
 
-      const accessor3 = createArrayAccessor({} as any);
+      const accessor3 = createArrayAccessor({} as unknown);
       assert.strictEqual(accessor3(testArray), null);
 
-      const accessor4 = createArrayAccessor([] as any);
+      const accessor4 = createArrayAccessor([] as unknown);
       assert.strictEqual(accessor4(testArray), null);
     });
 

@@ -1,14 +1,16 @@
 import assert from 'node:assert';
-import test from 'node:test';
+import { mock, test } from 'node:test';
 
 import { createDataTransformer } from './createDataTransformer.js';
 
 // 测试辅助函数
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const expectTransform = (schema: any, input: any, expected: any) => {
   const result = createDataTransformer(schema)(input);
   assert.deepEqual(result, expected);
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const expectThrows = (schema: any) => {
   assert.throws(() => createDataTransformer(schema));
 };
@@ -55,13 +57,13 @@ test('路径访问 (pathname)', async (t) => {
     expectTransform(
       ['age', { type: 'integer' }],
       { age: '33.3' },
-      33
+      33,
     );
 
     expectTransform(
       ['sub.age', { type: 'integer' }],
       { name: 'quan', sub: { age: 33.3 } },
-      33
+      33,
     );
   });
 
@@ -69,7 +71,7 @@ test('路径访问 (pathname)', async (t) => {
     expectTransform(
       ['obj.age', { type: 'integer' }],
       { obj: { age: '33.33' } },
-      33
+      33,
     );
   });
 
@@ -77,7 +79,7 @@ test('路径访问 (pathname)', async (t) => {
     expectTransform(
       ['ages', { type: 'integer' }],
       { age: '2.2' },
-      null
+      null,
     );
   });
 
@@ -85,13 +87,13 @@ test('路径访问 (pathname)', async (t) => {
     expectTransform(
       ['1', { type: 'number' }],
       ['44', '33.3'],
-      33.3
+      33.3,
     );
 
     expectTransform(
       ['1.age', { type: 'number' }],
       ['44', '33.3'],
-      null
+      null,
     );
   });
 
@@ -99,19 +101,19 @@ test('路径访问 (pathname)', async (t) => {
     expectTransform(
       {
         type: 'array',
-        properties: ['$age', { type: 'integer' }]
+        properties: ['$age', { type: 'integer' }],
       },
       { name: 'aa', age: '44.4' },
-      [44]
+      [44],
     );
 
     expectTransform(
       {
         type: 'array',
-        properties: ['$ages', { type: 'integer' }]
+        properties: ['$ages', { type: 'integer' }],
       },
       { name: 'aa', age: '44.4' },
-      []
+      [],
     );
   });
 
@@ -119,7 +121,7 @@ test('路径访问 (pathname)', async (t) => {
     expectTransform(
       ['.data.key', { type: 'string' }],
       { data: { key: 'aaaabbb' } },
-      'aaaabbb'
+      'aaaabbb',
     );
   });
 });
@@ -138,11 +140,11 @@ test('对象类型转换', async (t) => {
         type: 'object',
         properties: {
           name: { type: 'string' },
-          age: { type: 'integer' }
-        }
+          age: { type: 'integer' },
+        },
       },
       { name: 'quan', age: '22.2', foo: 'bar' },
-      { name: 'quan', age: 22 }
+      { name: 'quan', age: 22 },
     );
   });
 
@@ -157,21 +159,21 @@ test('对象类型转换', async (t) => {
             type: 'object',
             properties: {
               name: { type: 'string' },
-              age: { type: 'integer' }
-            }
-          }
-        }
+              age: { type: 'integer' },
+            },
+          },
+        },
       },
       {
         name: 'quan',
         age: '22.5',
-        obj: { name: 'xxx', age: '33.3', big: 'foo' }
+        obj: { name: 'xxx', age: '33.3', big: 'foo' },
       },
       {
         name: 'quan',
         age: 22.5,
-        obj: { name: 'xxx', age: 33 }
-      }
+        obj: { name: 'xxx', age: 33 },
+      },
     );
   });
 
@@ -179,7 +181,7 @@ test('对象类型转换', async (t) => {
     expectTransform(
       { type: 'object', properties: {} },
       { name: 'quan', age: '22.5', obj: 'aaa' },
-      { name: 'quan', age: '22.5', obj: 'aaa' }
+      { name: 'quan', age: '22.5', obj: 'aaa' },
     );
   });
 
@@ -189,15 +191,15 @@ test('对象类型转换', async (t) => {
         type: 'object',
         properties: {
           name: { type: 'string' },
-          age: { type: 'integer' }
-        }
+          age: { type: 'integer' },
+        },
       }],
       {
         name: 'quan',
         age: '22.5',
-        obj: { name: 'xxx', age: '33.3', big: 'foo' }
+        obj: { name: 'xxx', age: '33.3', big: 'foo' },
       },
-      { name: 'xxx', age: 33 }
+      { name: 'xxx', age: 33 },
     );
   });
 
@@ -207,11 +209,11 @@ test('对象类型转换', async (t) => {
         type: 'object',
         properties: {
           name: { type: 'string' },
-          ding: ['age', { type: 'integer' }]
-        }
+          ding: ['age', { type: 'integer' }],
+        },
       },
       { name: 'quan', age: '22.5' },
-      { name: 'quan', ding: 22 }
+      { name: 'quan', ding: 22 },
     );
   });
 
@@ -228,22 +230,22 @@ test('对象类型转换', async (t) => {
             properties: {
               name: { type: 'string' },
               age: { type: 'integer' },
-              cqq: ['big', { type: 'string' }]
-            }
-          }]
-        }
+              cqq: ['big', { type: 'string' }],
+            },
+          }],
+        },
       },
       {
         name: 'quan',
         age: '22.5',
-        obj: { name: 'xxx', age: '33.3', big: 'foo' }
+        obj: { name: 'xxx', age: '33.3', big: 'foo' },
       },
       {
         name: 'quan',
         age: 22.5,
         ddd: 'xxx',
-        sub: { name: 'xxx', age: 33, cqq: 'foo' }
-      }
+        sub: { name: 'xxx', age: 33, cqq: 'foo' },
+      },
     );
   });
 
@@ -254,11 +256,11 @@ test('对象类型转换', async (t) => {
         properties: {
           name: { type: 'string' },
           id: { type: 'number' },
-          _id: ['id', { type: 'string' }]
-        }
+          _id: ['id', { type: 'string' }],
+        },
       }],
       [{ name: 'quan', id: 11 }],
-      { name: 'quan', id: 11, _id: '11' }
+      { name: 'quan', id: 11, _id: '11' },
     );
 
     expectTransform(
@@ -267,11 +269,11 @@ test('对象类型转换', async (t) => {
         properties: {
           name: { type: 'string' },
           id: { type: 'number' },
-          _id: ['id', { type: 'string' }]
-        }
+          _id: ['id', { type: 'string' }],
+        },
       }],
       [],
-      { name: null, id: null, _id: null }
+      { name: null, id: null, _id: null },
     );
   });
 
@@ -287,10 +289,10 @@ test('对象类型转换', async (t) => {
               name: { type: 'string' },
               age: { type: 'integer' },
               ding: ['$cqq', { type: 'number' }],
-              jj: ['$other.age', { type: 'integer' }]
-            }
-          }]
-        }
+              jj: ['$other.age', { type: 'integer' }],
+            },
+          }],
+        },
       },
       {
         name: 'aaa',
@@ -299,8 +301,8 @@ test('对象类型转换', async (t) => {
         foo: {
           name: 'bbb',
           dd: 'ee',
-          big: { name: 'cccc', age: '33.3' }
-        }
+          big: { name: 'cccc', age: '33.3' },
+        },
       },
       {
         name: 'aaa',
@@ -308,9 +310,9 @@ test('对象类型转换', async (t) => {
           name: 'cccc',
           age: 33,
           jj: 66,
-          ding: 44.44
-        }
-      }
+          ding: 44.44,
+        },
+      },
     );
   });
 });
@@ -320,19 +322,19 @@ test('数组类型转换', async (t) => {
     expectTransform(
       {
         type: 'array',
-        properties: ['.', { type: 'integer' }]
+        properties: ['.', { type: 'integer' }],
       },
       ['33.3', '22.8'],
-      [33, 22]
+      [33, 22],
     );
 
     expectTransform(
       {
         type: 'array',
-        properties: ['.', { type: 'integer' }]
+        properties: ['.', { type: 'integer' }],
       },
       ['1.1', '3', '4'],
-      [1, 3, 4]
+      [1, 3, 4],
     );
   });
 
@@ -340,19 +342,19 @@ test('数组类型转换', async (t) => {
     expectTransform(
       {
         type: 'array',
-        properties: { age: { type: 'integer' } }
+        properties: { age: { type: 'integer' } },
       },
       [{ age: '33.3' }],
-      [{ age: 33 }]
+      [{ age: 33 }],
     );
 
     expectTransform(
       {
         type: 'array',
-        properties: { age: { type: 'integer' } }
+        properties: { age: { type: 'integer' } },
       },
       { age: '33.3' },
-      [{ age: 33 }]
+      [{ age: 33 }],
     );
   });
 
@@ -360,10 +362,10 @@ test('数组类型转换', async (t) => {
     expectTransform(
       {
         type: 'array',
-        properties: ['age', { type: 'integer' }]
+        properties: ['age', { type: 'integer' }],
       },
       [{ age: '1.1' }, { age: '3' }, { age: '4' }],
-      [1, 3, 4]
+      [1, 3, 4],
     );
   });
 
@@ -377,20 +379,20 @@ test('数组类型转换', async (t) => {
             type: 'array',
             properties: {
               name: ['$foo.name', { type: 'string' }],
-              age: ['$big.age', { type: 'integer' }]
-            }
-          }
-        }
+              age: ['$big.age', { type: 'integer' }],
+            },
+          },
+        },
       },
       {
         name: 'aaa',
         foo: { name: 'bbb' },
-        big: { age: '99.99' }
+        big: { age: '99.99' },
       },
       {
         name: 'aaa',
-        arr: [{ name: 'bbb', age: 99 }]
-      }
+        arr: [{ name: 'bbb', age: 99 }],
+      },
     );
   });
 
@@ -402,12 +404,12 @@ test('数组类型转换', async (t) => {
           type: 'array',
           properties: ['.', {
             type: 'array',
-            properties: ['.', { type: 'number' }]
-          }]
-        }]
+            properties: ['.', { type: 'number' }],
+          }],
+        }],
       },
       [[['11', 22], ['33', 44]], [[1], [2]]],
-      [[[11, 22], [33, 44]], [[1], [2]]]
+      [[[11, 22], [33, 44]], [[1], [2]]],
     );
   });
 
@@ -415,15 +417,15 @@ test('数组类型转换', async (t) => {
     expectTransform(
       ['.data', {
         type: 'array',
-        properties: { name: { type: 'string' } }
+        properties: { name: { type: 'string' } },
       }],
       {
         data: [
           { name: 'aa', age: 22 },
-          { name: 'bb', age: 33 }
-        ]
+          { name: 'bb', age: 33 },
+        ],
       },
-      [{ name: 'aa' }, { name: 'bb' }]
+      [{ name: 'aa' }, { name: 'bb' }],
     );
   });
 
@@ -433,20 +435,20 @@ test('数组类型转换', async (t) => {
         type: 'array',
         properties: {
           dateTimeNameStart: ['.startTime', { type: 'string' }],
-          dateTimeNameEnd: ['.endTime', { type: 'string' }]
-        }
+          dateTimeNameEnd: ['.endTime', { type: 'string' }],
+        },
       }],
       {
         deviceId: '101007351946',
         recordList: [
           { deviceId: '101007351946', startTime: '2024-06-25 10:09:37', endTime: '2024-06-25 13:45:32' },
-          { deviceId: '101007351946', startTime: '2024-06-25 13:47:16', endTime: '2024-06-25 17:01:19' }
-        ]
+          { deviceId: '101007351946', startTime: '2024-06-25 13:47:16', endTime: '2024-06-25 17:01:19' },
+        ],
       },
       [
         { dateTimeNameStart: '2024-06-25 10:09:37', dateTimeNameEnd: '2024-06-25 13:45:32' },
-        { dateTimeNameStart: '2024-06-25 13:47:16', dateTimeNameEnd: '2024-06-25 17:01:19' }
-      ]
+        { dateTimeNameStart: '2024-06-25 13:47:16', dateTimeNameEnd: '2024-06-25 17:01:19' },
+      ],
     );
   });
 });
@@ -456,19 +458,21 @@ test('resolve 函数', async (t) => {
     expectTransform(
       {
         type: 'integer',
-        resolve: (v: any) => v + 1
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        resolve: (v: any) => v + 1,
       },
       88,
-      89
+      89,
     );
 
     expectTransform(
       ['age', {
         type: 'integer',
-        resolve: (v: any) => `${v + 1}`
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        resolve: (v: any) => `${v + 1}`,
       }],
       { age: 88 },
-      89
+      89,
     );
   });
 
@@ -479,16 +483,18 @@ test('resolve 函数', async (t) => {
         properties: {
           name: {
             type: 'string',
-            resolve: (a: any, b: any) => `${a}_${b.aa}`
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            resolve: (a: any, b: any) => `${a}_${b.aa}`,
           },
           age: {
             type: 'integer',
-            resolve: (a: any) => a + 1
-          }
-        }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            resolve: (a: any) => a + 1,
+          },
+        },
       },
       { name: 'quan', aa: 'xx', age: 33 },
-      { name: 'quan_xx', age: 34 }
+      { name: 'quan_xx', age: 34 },
     );
   });
 
@@ -500,12 +506,12 @@ test('resolve 函数', async (t) => {
           name: { type: 'string' },
           age: {
             type: 'integer',
-            resolve: () => 99
-          }
-        }
+            resolve: () => 99,
+          },
+        },
       },
       { name: 'quan' },
-      { name: 'quan', age: 99 }
+      { name: 'quan', age: 99 },
     );
   });
 
@@ -516,7 +522,8 @@ test('resolve 函数', async (t) => {
         properties: {
           name: {
             type: 'string',
-            resolve: (a: any, b: any) => `${a}_${b.aa}`
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            resolve: (a: any, b: any) => `${a}_${b.aa}`,
           },
           obj: {
             type: 'object',
@@ -524,25 +531,27 @@ test('resolve 函数', async (t) => {
               name: { type: 'string' },
               age: ['big', {
                 type: 'integer',
-                resolve: (a: any) => a + 1
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                resolve: (a: any) => a + 1,
               }],
               ding: {
                 type: 'string',
-                resolve: (a: any, b: any) => `${b.name}_${a}`
-              }
-            }
-          }
-        }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                resolve: (a: any, b: any) => `${b.name}_${a}`,
+              },
+            },
+          },
+        },
       },
       {
         name: 'quan',
         aa: 'xx',
-        obj: { name: 'rice', big: 33, ding: 'aaa' }
+        obj: { name: 'rice', big: 33, ding: 'aaa' },
       },
       {
         name: 'quan_xx',
-        obj: { name: 'rice', age: 34, ding: 'quan_aaa' }
-      }
+        obj: { name: 'rice', age: 34, ding: 'quan_aaa' },
+      },
     );
   });
 
@@ -550,7 +559,7 @@ test('resolve 函数', async (t) => {
     expectTransform(
       { type: 'object', properties: { name: { type: 'string' }, resolve: { type: 'string' } } },
       { name: 'aaa', resolve: 'resolve' },
-      { name: 'aaa', resolve: 'resolve' }
+      { name: 'aaa', resolve: 'resolve' },
     );
   });
 
@@ -565,27 +574,28 @@ test('resolve 函数', async (t) => {
             properties: {
               token: ['.', {
                 type: 'string',
-                resolve: (d: any) => `${d.name}_${d.age}`
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                resolve: (d: any) => `${d.name}_${d.age}`,
               }],
-              name: { type: 'string' }
-            }
-          }
-        }
+              name: { type: 'string' },
+            },
+          },
+        },
       },
       {
         count: 20,
         list: [
           { name: 'big', age: 11 },
-          { name: 'bar', age: 22 }
-        ]
+          { name: 'bar', age: 22 },
+        ],
       },
       {
         count: 20,
         list: [
           { name: 'big', token: 'big_11' },
-          { name: 'bar', token: 'bar_22' }
-        ]
-      }
+          { name: 'bar', token: 'bar_22' },
+        ],
+      },
     );
   });
 
@@ -597,18 +607,18 @@ test('resolve 函数', async (t) => {
           count: { type: 'integer' },
           list: {
             type: 'array',
-            properties: ['.name', { type: 'string' }]
-          }
-        }
+            properties: ['.name', { type: 'string' }],
+          },
+        },
       },
       {
         count: 20,
         list: [
           { name: 'big', age: 11 },
-          { name: 'bar', age: 22 }
-        ]
+          { name: 'bar', age: 22 },
+        ],
       },
-      { count: 20, list: ['big', 'bar'] }
+      { count: 20, list: ['big', 'bar'] },
     );
   });
 });
@@ -618,10 +628,10 @@ test('实际场景测试', async (t) => {
     expectTransform(
       ['obj', {
         type: 'object',
-        properties: { name: { type: 'string' } }
+        properties: { name: { type: 'string' } },
       }],
       { name: 'quan', age: '22.5', obj: { name: 'xxx', age: '33.3', big: 'foo' } },
-      { name: 'xxx' }
+      { name: 'xxx' },
     );
   });
 
@@ -632,12 +642,12 @@ test('实际场景测试', async (t) => {
         properties: {
           chl: {
             type: 'array',
-            properties: ['$channel', { type: 'string' }]
-          }
-        }
+            properties: ['$channel', { type: 'string' }],
+          },
+        },
       },
       { channel: '1' },
-      { chl: ['1'] }
+      { chl: ['1'] },
     );
   });
 
@@ -651,16 +661,16 @@ test('实际场景测试', async (t) => {
             type: 'array',
             properties: {
               task: ['$taskId', { type: 'number' }],
-              date: ['$dateName', { type: 'string' }]
-            }
-          }
-        }
+              date: ['$dateName', { type: 'string' }],
+            },
+          },
+        },
       },
       { key: '123', taskId: '999', dateName: '2024-06-06' },
       {
         key: '123',
-        params: [{ task: '999', date: '2024-06-06' }]
-      }
+        params: [{ task: '999', date: '2024-06-06' }],
+      },
     );
   });
 
@@ -670,20 +680,20 @@ test('实际场景测试', async (t) => {
         type: 'object',
         properties: {
           dir: ['.data.0.dir', { type: 'string' }],
-          name: ['.data.0.name', { type: 'string' }]
-        }
+          name: ['.data.0.name', { type: 'string' }],
+        },
       },
       {
         data: [
           { dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=', name: 'qq1234-170619-000000-002000-01p401000000.264' },
-          { dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=', name: 'qq1234-170619-000000-002000-01p401000000.mp4' }
+          { dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=', name: 'qq1234-170619-000000-002000-01p401000000.mp4' },
         ],
-        errorcode: 200
+        errorcode: 200,
       },
       {
         dir: 'QzpcVmlkZW9ccXExMjM0XDIwMTctMDYtMTlccmVjb3JkXDE=',
-        name: 'qq1234-170619-000000-002000-01p401000000.264'
-      }
+        name: 'qq1234-170619-000000-002000-01p401000000.264',
+      },
     );
   });
 
@@ -694,25 +704,25 @@ test('实际场景测试', async (t) => {
         properties: {
           route: ['.data', {
             type: 'object',
-            properties: {}
-          }]
-        }
+            properties: {},
+          }],
+        },
       },
       {
         code: 0,
         data: {
           name: 'data111',
           '/aaa': { name: '123', '/ccc': { name: 'ccc' } },
-          '/sss': { name: '999' }
-        }
+          '/sss': { name: '999' },
+        },
       },
       {
         route: {
           name: 'data111',
           '/aaa': { name: '123', '/ccc': { name: 'ccc' } },
-          '/sss': { name: '999' }
-        }
-      }
+          '/sss': { name: '999' },
+        },
+      },
     );
   });
 
@@ -720,10 +730,10 @@ test('实际场景测试', async (t) => {
     expectTransform(
       {
         type: 'object',
-        properties: { name: ['.', { type: 'string' }] }
+        properties: { name: ['.', { type: 'string' }] },
       },
       '111222',
-      { name: '111222' }
+      { name: '111222' },
     );
   });
 
@@ -731,10 +741,10 @@ test('实际场景测试', async (t) => {
     expectTransform(
       ['.data', {
         type: 'array',
-        properties: ['.', { type: 'string' }]
+        properties: ['.', { type: 'string' }],
       }],
       { data: ['222', '333'] },
-      ['222', '333']
+      ['222', '333'],
     );
   });
 });
@@ -749,10 +759,10 @@ test('边界情况', async (t) => {
     expectTransform(
       {
         type: 'array',
-        properties: { name: { type: 'string' } }
+        properties: { name: { type: 'string' } },
       },
       [],
-      []
+      [],
     );
   });
 
@@ -760,10 +770,10 @@ test('边界情况', async (t) => {
     expectTransform(
       {
         type: 'array',
-        properties: ['.', { type: 'string' }]
+        properties: ['.', { type: 'string' }],
       },
       [null, 'test', undefined],
-      [null, 'test', null]
+      [null, 'test', null],
     );
   });
 
@@ -773,8 +783,8 @@ test('边界情况', async (t) => {
       properties: {
         name: { type: 'string' },
         age: { type: 'number' },
-        email: { type: 'string' }
-      }
+        email: { type: 'string' },
+      },
     })({ name: 'Alice' });
 
     assert.strictEqual(result.name, 'Alice');
@@ -786,13 +796,13 @@ test('边界情况', async (t) => {
     expectTransform(
       { type: 'array', properties: { name: { type: 'string' } } },
       { names: 'quan' },
-      [{ name: null }]
+      [{ name: null }],
     );
 
     expectTransform(
       { type: 'array', properties: { name: { type: 'string' } } },
       { name: 'quan' },
-      [{ name: 'quan' }]
+      [{ name: 'quan' }],
     );
   });
 
@@ -800,7 +810,7 @@ test('边界情况', async (t) => {
     expectTransform(
       { type: 'array', properties: {} },
       { names: 'quan' },
-      []
+      [],
     );
   });
 
@@ -808,10 +818,10 @@ test('边界情况', async (t) => {
     expectTransform(
       ['obj', {
         type: 'object',
-        properties: {}
+        properties: {},
       }],
       { name: 'quan', age: '22.5', obj: 'aaa' },
-      {}
+      {},
     );
   });
 });
@@ -823,13 +833,13 @@ test('错误处理', async (t) => {
     createDataTransformer({
       type: 'array',
       properties: {},
-      resolve: () => {}
+      resolve: () => {},
     });
 
     assert.strictEqual(consoleWarnSpy.mock.calls.length, 1);
     assert.match(
       consoleWarnSpy.mock.calls[0].arguments[0] as string,
-      /does not support resolve/
+      /does not support resolve/,
     );
 
     consoleWarnSpy.mock.restore();
