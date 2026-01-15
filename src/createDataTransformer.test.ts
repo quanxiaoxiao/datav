@@ -1,32 +1,32 @@
 import assert from 'node:assert';
 import test from 'node:test';
 
-import select from './index.js';
+import { createDataTransformer } from './createDataTransformer.js';
 
-test('select > index', () => {
+test('createDataTransformer > index', () => {
   assert.throws(() => {
-    select('number');
+    createDataTransformer('number');
   });
   assert.throws(() => {
-    select(['name']);
+    createDataTransformer(['name']);
   });
   assert.throws(() => {
-    select(['name', []]);
+    createDataTransformer(['name', []]);
   });
   assert.throws(() => {
-    select(['name', 'xxx']);
+    createDataTransformer(['name', 'xxx']);
   });
-  assert.equal(select({ type: 'number' })('1'), 1);
-  assert.equal(select({ type: 'number' })('1.1'), 1.1);
-  assert.equal(select({ type: 'number' })(1.1), 1.1);
-  assert.equal(select({ type: 'integer' })('1.1'), 1);
-  assert.equal(select({ type: 'boolean' })('true'), true);
-  assert.equal(select({ type: 'boolean' })('false'), false);
-  assert.equal(select({ type: 'boolean' })('true1'), null);
-  assert.equal(select({ type: 'number' })('33.3'), 33.3);
-  assert.equal(select({ type: 'integer' })('33.3'), 33);
+  assert.equal(createDataTransformer({ type: 'number' })('1'), 1);
+  assert.equal(createDataTransformer({ type: 'number' })('1.1'), 1.1);
+  assert.equal(createDataTransformer({ type: 'number' })(1.1), 1.1);
+  assert.equal(createDataTransformer({ type: 'integer' })('1.1'), 1);
+  assert.equal(createDataTransformer({ type: 'boolean' })('true'), true);
+  assert.equal(createDataTransformer({ type: 'boolean' })('false'), false);
+  assert.equal(createDataTransformer({ type: 'boolean' })('true1'), null);
+  assert.equal(createDataTransformer({ type: 'number' })('33.3'), 33.3);
+  assert.equal(createDataTransformer({ type: 'integer' })('33.3'), 33);
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'object',
       properties: {
         name: {
@@ -39,48 +39,48 @@ test('select > index', () => {
     })({ name: 'quan', age: '22.2', foo: 'bar' }),
     { name: 'quan', age: 22 },
   );
-  assert.equal(select(['age', { type: 'integer' }])({ age: '33.3' }), 33);
-  assert.equal(select(['sub.age', { type: 'integer' }])({ name: 'quan', sub: { age: 33.3 } }), 33);
+  assert.equal(createDataTransformer(['age', { type: 'integer' }])({ age: '33.3' }), 33);
+  assert.equal(createDataTransformer(['sub.age', { type: 'integer' }])({ name: 'quan', sub: { age: 33.3 } }), 33);
 });
 
-test('select > index, pathname', () => {
-  assert.equal(select({
+test('createDataTransformer > index, pathname', () => {
+  assert.equal(createDataTransformer({
     type: 'integer',
     properties: ['age', { type: 'number' }],
   })('333.3'), 333);
-  assert.equal(select(['age', { type: 'integer' }])({ age: '2.2' }), 2);
-  assert.equal(select(['ages', { type: 'integer' }])({ age: '2.2' }), null);
+  assert.equal(createDataTransformer(['age', { type: 'integer' }])({ age: '2.2' }), 2);
+  assert.equal(createDataTransformer(['ages', { type: 'integer' }])({ age: '2.2' }), null);
 });
 
-test('select > index, []', () => {
-  assert.equal(select(['age', { type: 'integer' }])({ age: '33.33' }), 33);
-  assert.equal(select(['obj.age', { type: 'integer' }])({ obj: { age: '33.33' } }), 33);
+test('createDataTransformer > index, []', () => {
+  assert.equal(createDataTransformer(['age', { type: 'integer' }])({ age: '33.33' }), 33);
+  assert.equal(createDataTransformer(['obj.age', { type: 'integer' }])({ obj: { age: '33.33' } }), 33);
 });
 
-test('select > index, type with object', () => {
+test('createDataTransformer > index, type with object', () => {
   assert.throws(() => {
-    select({
+    createDataTransformer({
       type: 'object',
     });
   });
   assert.throws(() => {
-    select({
+    createDataTransformer({
       type: 'object',
       properties: [],
     });
   });
   assert.throws(() => {
-    select(['obj', {
+    createDataTransformer(['obj', {
       type: 'object',
     }]);
   });
   assert.throws(() => {
-    select({
+    createDataTransformer({
       type: 'object',
       properties: 'xxx',
     });
   });
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'object',
     properties: {
       name: {
@@ -98,7 +98,7 @@ test('select > index, type with object', () => {
       big: 'xxx',
     },
   }), { name: 'quan', age: 22 });
-  assert.deepEqual(select([
+  assert.deepEqual(createDataTransformer([
     'obj',
     {
       type: 'object',
@@ -120,7 +120,7 @@ test('select > index, type with object', () => {
       big: 'foo',
     },
   }), { name: 'xxx', age: 33 });
-  assert.deepEqual(select([
+  assert.deepEqual(createDataTransformer([
     'obj',
     {
       type: 'object',
@@ -139,7 +139,7 @@ test('select > index, type with object', () => {
     age: '33.3',
     big: 'foo',
   });
-  assert.deepEqual(select([
+  assert.deepEqual(createDataTransformer([
     'obj',
     {
       type: 'object',
@@ -150,7 +150,7 @@ test('select > index, type with object', () => {
     age: '22.5',
     obj: 'aaa',
   }), {});
-  assert.deepEqual(select(
+  assert.deepEqual(createDataTransformer(
     {
       type: 'object',
       properties: {},
@@ -164,7 +164,7 @@ test('select > index, type with object', () => {
     age: '22.5',
     obj: 'aaa',
   });
-  assert.deepEqual(select([
+  assert.deepEqual(createDataTransformer([
     'obj',
     {
       type: 'object',
@@ -183,7 +183,7 @@ test('select > index, type with object', () => {
       big: 'foo',
     },
   }), { name: 'xxx' });
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'object',
     properties: {
       name: {
@@ -220,7 +220,7 @@ test('select > index, type with object', () => {
       age: 33,
     },
   });
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'object',
     properties: {
       name: {
@@ -237,7 +237,7 @@ test('select > index, type with object', () => {
     name: 'quan',
     ding: 22,
   });
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'object',
     properties: {
       name: {
@@ -263,7 +263,7 @@ test('select > index, type with object', () => {
     age: 22.5,
     ding: 'foo',
   });
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'object',
     properties: {
       name: {
@@ -304,7 +304,7 @@ test('select > index, type with object', () => {
       cqq: 'foo',
     },
   });
-  assert.deepEqual(select(['obj', {
+  assert.deepEqual(createDataTransformer(['obj', {
     type: 'object',
     properties: {
       name: {
@@ -326,7 +326,7 @@ test('select > index, type with object', () => {
     name: 'xxx',
     age: 33,
   });
-  assert.deepEqual(select(['obj', {
+  assert.deepEqual(createDataTransformer(['obj', {
     type: 'object',
     properties: {
       name: {
@@ -350,7 +350,7 @@ test('select > index, type with object', () => {
     name: 'xxx',
     age: 33,
   });
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'object',
     properties: {
       obj: ['arr.0', {
@@ -375,22 +375,22 @@ test('select > index, type with object', () => {
       foo: 99,
     },
   });
-  assert.equal(select(['1', {
+  assert.equal(createDataTransformer(['1', {
     type: 'number',
   }])(['44', '33.3']), 33.3);
-  assert.equal(select(['1.age', {
+  assert.equal(createDataTransformer(['1.age', {
     type: 'number',
   }])(['44', '33.3']), null);
 });
 
-test('select > index array', () => {
-  assert.deepEqual(select({
+test('createDataTransformer > index array', () => {
+  assert.deepEqual(createDataTransformer({
     type: 'array',
     properties: ['.', {
       type: 'integer',
     }],
   })(['33.3', '22.8']), [33, 22]);
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'array',
     properties: {
       age: {
@@ -398,7 +398,7 @@ test('select > index array', () => {
       },
     },
   })([{ age: '33.3' }]), [{ age: 33 }]);
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'array',
     properties: {
       age: {
@@ -406,11 +406,11 @@ test('select > index array', () => {
       },
     },
   })({ age: '33.3' }), [{ age: 33 }]);
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'array',
     properties: ['.', { type: 'integer' }],
   })(['1.1', '3', '4']), [1, 3, 4]);
-  assert.deepEqual(select({
+  assert.deepEqual(createDataTransformer({
     type: 'array',
     properties: ['age', { type: 'integer' }],
   })([
@@ -425,28 +425,28 @@ test('select > index array', () => {
     },
   ]), [1, 3, 4]);
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'array',
       properties: ['$age', { type: 'integer' }],
     })({ name: 'aa', age: '44.4' }),
     [44],
   );
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'array',
       properties: ['$ages', { type: 'integer' }],
     })({ name: 'aa', age: '44.4' }),
     [],
   );
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'array',
       properties: ['age', { type: 'integer' }],
     })({ name: 'aa', age: '44.4' }),
     [],
   );
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'object',
       properties: {
         name: {
@@ -479,9 +479,9 @@ test('select > index array', () => {
   );
 });
 
-test('select > index, array to object', () => {
+test('createDataTransformer > index, array to object', () => {
   assert.deepEqual(
-    select(
+    createDataTransformer(
       ['0', {
         type: 'object',
         properties: {
@@ -498,7 +498,7 @@ test('select > index, array to object', () => {
     { name: 'quan', id: 11, _id: '11' },
   );
   assert.deepEqual(
-    select(
+    createDataTransformer(
       ['0', {
         type: 'object',
         properties: {
@@ -516,9 +516,9 @@ test('select > index, array to object', () => {
   );
 });
 
-test('select > index', () => {
+test('createDataTransformer > index', () => {
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'object',
       properties: {
         name: {
@@ -565,7 +565,7 @@ test('select > index', () => {
   );
 
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'array',
       properties: {
         name: {
@@ -577,7 +577,7 @@ test('select > index', () => {
   );
 
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'array',
       properties: {
         name: {
@@ -589,7 +589,7 @@ test('select > index', () => {
   );
 
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'array',
       properties: {
       },
@@ -598,7 +598,7 @@ test('select > index', () => {
   );
 
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'object',
       properties: {
         name: {
@@ -652,23 +652,23 @@ test('select > index', () => {
   );
 });
 
-test('select > index, resolve', () => {
+test('createDataTransformer > index, resolve', () => {
   assert.equal(
-    select({
+    createDataTransformer({
       type: 'integer',
       resolve: (v) => (v as number) + 1,
     })(88),
     89,
   );
   assert.equal(
-    select(['age', {
+    createDataTransformer(['age', {
       type: 'integer',
       resolve: (v) => `${(v as number) + 1}`,
     }])({ age: 88 }),
     89,
   );
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'object',
       properties: {
         name: {
@@ -691,7 +691,7 @@ test('select > index, resolve', () => {
     },
   );
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'object',
       properties: {
         name: {
@@ -711,7 +711,7 @@ test('select > index, resolve', () => {
     },
   );
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'object',
       properties: {
         name: {
@@ -734,7 +734,7 @@ test('select > index, resolve', () => {
     },
   );
   assert.deepEqual(
-    select({
+    createDataTransformer({
       type: 'object',
       properties: {
         name: {
@@ -777,7 +777,7 @@ test('select > index, resolve', () => {
     },
   );
   assert.deepEqual(
-    select(
+    createDataTransformer(
       {
         type: 'object',
         properties: {
@@ -793,7 +793,7 @@ test('select > index, resolve', () => {
     { name: 'aaa', resolve: 'resolve' },
   );
   assert.deepEqual(
-    select(
+    createDataTransformer(
       {
         type: 'object',
         resolve: () => ({ name: 'xxx' }),
@@ -811,8 +811,8 @@ test('select > index, resolve', () => {
   );
 });
 
-test('select > index, resolve pathList', () => {
-  const ret = select(
+test('createDataTransformer > index, resolve pathList', () => {
+  const ret = createDataTransformer(
     {
       type: 'object',
       properties: {
@@ -861,8 +861,8 @@ test('select > index, resolve pathList', () => {
   });
 });
 
-test('select > index, resolve pathList 2', () => {
-  const ret = select(
+test('createDataTransformer > index, resolve pathList 2', () => {
+  const ret = createDataTransformer(
     {
       type: 'object',
       properties: {
@@ -896,7 +896,7 @@ test('select > index, resolve pathList 2', () => {
   });
 });
 
-test('select array222', () => {
+test('createDataTransformer array222', () => {
   const data = {
     data: [
       {
@@ -909,7 +909,7 @@ test('select array222', () => {
       },
     ],
   };
-  const ret = select(['.data', {
+  const ret = createDataTransformer(['.data', {
     type: 'array',
     properties: {
       name: {
@@ -920,9 +920,9 @@ test('select array222', () => {
   assert.deepEqual(ret, [{ name: 'aa' }, { name: 'bb' }]);
 });
 
-test('select array array array', () => {
+test('createDataTransformer array array array', () => {
   const array = [[['11', 22], ['33', 44]], [[1], [2]]];
-  const ret = select({
+  const ret = createDataTransformer({
     type: 'array',
     properties: ['.', {
       type: 'array',
@@ -935,12 +935,12 @@ test('select array array array', () => {
   assert.deepEqual(ret, [[[11, 22], [33, 44]], [[1], [2]]]);
 });
 
-test('select object array array array', () => {
+test('createDataTransformer object array array array', () => {
   const obj = {
     name: 'xxx',
     arr: [[['11', 22], ['33', 44]], [[1], [2]]],
   };
-  const ret = select({
+  const ret = createDataTransformer({
     type: 'object',
     properties: {
       name: {
@@ -961,26 +961,26 @@ test('select object array array array', () => {
   assert.deepEqual(ret.arr, [[[11, 22], [33, 44]], [[1], [2]]]);
 });
 
-test('select 222', () => {
+test('createDataTransformer 222', () => {
   const obj = {
     data: {
       key: 'aaaabbb',
     },
   };
-  assert.equal(select(['.data.key', { type: 'string' }])(obj), obj.data.key);
+  assert.equal(createDataTransformer(['.data.key', { type: 'string' }])(obj), obj.data.key);
 });
 
-test('select 333', () => {
+test('createDataTransformer 333', () => {
   const obj = {
     data: ['222', '333'],
   };
-  assert.deepEqual(select(['.data', { type: 'array', properties: ['.', { type: 'string' }] }])(obj), obj.data);
+  assert.deepEqual(createDataTransformer(['.data', { type: 'array', properties: ['.', { type: 'string' }] }])(obj), obj.data);
 });
 
-test('select 444', () => {
+test('createDataTransformer 444', () => {
   const key = '111222';
 
-  const ret = select({
+  const ret = createDataTransformer({
     type: 'object',
     properties: {
       name: ['.', {
@@ -991,7 +991,7 @@ test('select 444', () => {
   assert.deepEqual(ret, { name: key });
 });
 
-test('select 5555', () => {
+test('createDataTransformer 5555', () => {
   const data = {
     deviceId: '101007351946',
     channelId: '2',
@@ -1023,7 +1023,7 @@ test('select 5555', () => {
       },
     ],
   };
-  const ret = select(['.recordList', {
+  const ret = createDataTransformer(['.recordList', {
     type: 'array',
     properties: {
       dateTimeNameStart: ['.startTime', { type: 'string' }],
@@ -1039,8 +1039,8 @@ test('select 5555', () => {
   );
 });
 
-test('select 666', () => {
-  const ret = select({
+test('createDataTransformer 666', () => {
+  const ret = createDataTransformer({
     type: 'object',
     properties: {
       chl: {
@@ -1054,8 +1054,8 @@ test('select 666', () => {
   assert.deepEqual(ret, { chl: ['1'] });
 });
 
-test('select 777', () => {
-  const ret = select({
+test('createDataTransformer 777', () => {
+  const ret = createDataTransformer({
     type: 'object',
     properties: {
       key: {
@@ -1085,8 +1085,8 @@ test('select 777', () => {
   });
 });
 
-test('select 888', () => {
-  const ret = select({
+test('createDataTransformer 888', () => {
+  const ret = createDataTransformer({
     type: 'object',
     properties: {
       dir: ['.data.0.dir', { type: 'string' }],
@@ -1111,7 +1111,7 @@ test('select 888', () => {
   });
 });
 
-test('select object empty properties', () => {
+test('createDataTransformer object empty properties', () => {
   const data = {
     code: 0,
     data: {
@@ -1127,7 +1127,7 @@ test('select object empty properties', () => {
       },
     },
   };
-  const ret = select({
+  const ret = createDataTransformer({
     type: 'object',
     properties: {
       route: ['.data', {

@@ -1,6 +1,6 @@
-import { createDataAccessor } from '../createDataAccessor.js';
-import { parseValueByType } from '../parseValueByType.js';
-import { isEmpty, isPlainObject } from '../utils.js';
+import { createDataAccessor } from './createDataAccessor.js';
+import { parseValueByType } from './parseValueByType.js';
+import { isEmpty, isPlainObject } from './utils.js';
 import { validateExpressSchema } from './validateExpressSchema.js';
 
 interface SchemaExpress {
@@ -17,12 +17,9 @@ interface FieldHandler {
 
 type TransformFn = (schema: SchemaExpress | [string, SchemaExpress]) => (data: unknown, root?: unknown) => unknown;
 
-/**
- * 创建对象字段转换器
- */
 const createObjectTransformer = (
   properties: Record<string, SchemaExpress>,
-  createTransform: TransformFn
+  createTransform: TransformFn,
 ): ((data: unknown, root: unknown) => object) => {
   const handlers: FieldHandler[] = Object.entries(properties).map(([fieldKey, schema]) => ({
     fieldKey,
@@ -81,7 +78,7 @@ const createPlainObjectTransformer = (): TransformFn => {
  */
 const createArrayTransformer = (
   properties: [string, SchemaExpress],
-  createTransform: TransformFn
+  createTransform: TransformFn,
 ): TransformFn => {
   const [pathname, itemSchema] = properties;
   const itemTransform = createTransform(itemSchema);
@@ -111,7 +108,7 @@ const createArrayTransformer = (
  */
 const createArrayObjectTransformer = (
   properties: Record<string, SchemaExpress>,
-  createTransform: TransformFn
+  createTransform: TransformFn,
 ): TransformFn => {
   const objectTransform = createObjectTransformer(properties, createTransform);
 
@@ -130,7 +127,7 @@ const createArrayObjectTransformer = (
  * 创建数据转换器
  * 根据 schema 表达式递归创建数据转换函数
  */
-const createDataTransformer: TransformFn = (schema) => {
+export const createDataTransformer: TransformFn = (schema) => {
   // 处理路径访问形式: [pathname, schema]
   if (Array.isArray(schema)) {
     const [pathname, nestedSchema] = schema;
@@ -148,20 +145,16 @@ const createDataTransformer: TransformFn = (schema) => {
     };
   }
 
-  // 验证 schema 结构
   validateExpressSchema(schema);
 
-  // 处理基础类型
   if (['string', 'number', 'boolean', 'integer'].includes(schema.type)) {
     return createPrimitiveTransformer(schema);
   }
 
-  // array 和 object 类型不支持 resolve
   if (schema.resolve) {
     console.warn('Data type `array` or `object` does not support resolve function');
   }
 
-  // 处理对象类型
   if (schema.type === 'object') {
     if (isEmpty(schema.properties)) {
       return createPlainObjectTransformer();
@@ -169,7 +162,6 @@ const createDataTransformer: TransformFn = (schema) => {
     return createObjectTransformer(schema.properties as Record<string, SchemaExpress>, createDataTransformer);
   }
 
-  // 处理数组类型
   if (Array.isArray(schema.properties)) {
     return createArrayTransformer(schema.properties as [string, SchemaExpress], createDataTransformer);
   }
@@ -177,5 +169,3 @@ const createDataTransformer: TransformFn = (schema) => {
   // 处理数组对象类型
   return createArrayObjectTransformer(schema.properties as Record<string, SchemaExpress>, createDataTransformer);
 };
-
-export default createDataTransformer;
