@@ -1,8 +1,8 @@
 /* eslint no-use-before-define: 0 */
-import { getValueOfPathname } from '@quanxiaoxiao/utils';
 import _ from 'lodash';
 
 import checkout from '../checkout.mjs';
+import getValueOfPathname from '../getValueOfPathname.mjs';
 import check from './check.mjs';
 
 function walkWithObject(properties) {
