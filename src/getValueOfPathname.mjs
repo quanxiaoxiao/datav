@@ -1,6 +1,6 @@
 import getValueOfArray from './getValueOfArray.mjs';
 import getValueOfPathList from './getValueOfPathList.mjs';
-import parseDataKeyToPathList from './parseDataKeyToPathList.mjs';
+import { parseDotPath } from './parseDotPath.mjs';
 
 export default (pathname) => {
   if (pathname == null) {
@@ -18,5 +18,5 @@ export default (pathname) => {
   if (type !== 'string') {
     return () => null;
   }
-  return getValueOfPathList(parseDataKeyToPathList(pathname));
+  return getValueOfPathList(parseDotPath(pathname));
 };
