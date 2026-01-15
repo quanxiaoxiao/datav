@@ -1,9 +1,9 @@
 import assert from 'node:assert';
 import test from 'node:test';
 
-import { parseDotPath } from './parseDotPath.mjs';
+import { parseDotPath } from './parseDotPath.js';
 
-const testCases = (description, cases) => {
+const testCases = (description: string, cases: Array<[string, string[], string?]>): void => {
   test(description, async (t) => {
     for (const [input, expected, testDesc] of cases) {
       await t.test(testDesc || `输入: "${input}"`, () => {
@@ -13,7 +13,7 @@ const testCases = (description, cases) => {
   });
 };
 
-const errorCases = (description, cases) => {
+const errorCases = (description: string, cases: Array<[string, string | null, string?]>): void => {
   test(description, async (t) => {
     for (const [input, errorMsg, testDesc] of cases) {
       await t.test(testDesc || `输入: "${input}"`, () => {
@@ -29,7 +29,6 @@ const errorCases = (description, cases) => {
   });
 };
 
-// 基本功能测试
 testCases('基本路径解析', [
   ['', [], '空字符串应返回空数组'],
   ['.', [], '单个点应返回空数组'],
@@ -39,14 +38,12 @@ testCases('基本路径解析', [
   ['first.second.third.fourth', ['first', 'second', 'third', 'fourth'], '多个段'],
 ]);
 
-// 前导点处理
 testCases('前导点处理', [
   ['.aa', ['aa'], '前导点 + 单段'],
   ['.a.b.c', ['a', 'b', 'c'], '前导点 + 多段'],
   ['.aa.bb.cc', ['aa', 'bb', 'cc'], '前导点 + 多段（长名称）'],
 ]);
 
-// 转义点号处理
 testCases('转义点号处理', [
   ['a\\.b', ['a.b'], '单个转义点'],
   ['a\\.b.c', ['a.b', 'c'], '转义点在中间段'],
@@ -63,7 +60,6 @@ testCases('转义点号处理', [
   ['a\\.\\.b', ['a..b'], '转义的连续点号'],
 ]);
 
-// 特殊字符和边界情况
 testCases('特殊字符处理', [
   ['aa. .bb', ['aa', ' ', 'bb'], '空格段'],
   ['a-b.c_d.e123', ['a-b', 'c_d', 'e123'], '连字符和下划线'],
@@ -73,7 +69,6 @@ testCases('特殊字符处理', [
   ['$var.prop', ['$var', 'prop'], '美元符号开头'],
 ]);
 
-// 长路径测试
 testCases('长路径处理', [
   [
     'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p',
@@ -87,7 +82,6 @@ testCases('长路径处理', [
   ],
 ]);
 
-// 错误情况测试
 errorCases('错误：空段检测', [
   ['..aa', null, '开头的连续点'],
   ['a..b', null, '中间的连续点'],
@@ -100,7 +94,6 @@ errorCases('错误：空段检测', [
   ['.a\\.b..c\\.d.e\\..f', null, '复杂的空段错误'],
 ]);
 
-// 综合测试（保留原有的完整测试以确保兼容性）
 test('parseDotPath - 完整兼容性测试', () => {
   const validCases = [
     ['', []],
@@ -133,7 +126,7 @@ test('parseDotPath - 完整兼容性测试', () => {
     '.a\\.b..c\\.d.e\\..f',
   ];
 
-  errorInputs.forEach(input => {
+  errorInputs.forEach((input) => {
     assert.throws(() => parseDotPath(input), `Should throw for input: "${input}"`);
   });
 });

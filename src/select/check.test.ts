@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import test from 'node:test';
 
-import check from './check.mjs';
+import check from './check.js';
 
 test('select > check', () => {
   assert.throws(() => {

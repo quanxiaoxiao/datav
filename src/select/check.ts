@@ -56,8 +56,14 @@ const validate = ajv.compile({
   ],
 });
 
-export default (express) => {
+interface ExpressSchema {
+  type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
+  properties?: Record<string, unknown> | object | [string, object];
+  resolve?: (value: unknown, root: unknown) => unknown;
+}
+
+export default function check(express: ExpressSchema): void {
   if (!validate(express)) {
     throw new Error(`\`${JSON.stringify(express)}\` ${JSON.stringify(validate.errors)}`);
   }
-};
+}

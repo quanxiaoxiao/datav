@@ -8,10 +8,17 @@ const DATA_TYPE_ARRAY = 'array';
 const DATA_TYPE_OBJECT = 'object';
 const DATA_TYPE_INTEGER = 'integer';
 
-const map = {
+type DataType = typeof DATA_TYPE_NUMBER | typeof DATA_TYPE_STRING | typeof DATA_TYPE_BOOLEAN |
+                typeof DATA_TYPE_JSON | typeof DATA_TYPE_ARRAY | typeof DATA_TYPE_OBJECT |
+                typeof DATA_TYPE_INTEGER;
+
+type ValueTransformer = (v: unknown) => unknown;
+
+const map: Record<DataType, ValueTransformer> = {
   [DATA_TYPE_STRING]: (v) => {
     if (typeof v !== 'string') {
-      return v.toString ? `${v.toString()}` : JSON.stringify(v);
+      const strVal = v as { toString?: () => string };
+      return strVal.toString ? `${strVal.toString()}` : JSON.stringify(v);
     }
     return v;
   },
@@ -33,7 +40,7 @@ const map = {
     if (`${number}` !== `${v}`) {
       return null;
     }
-    return parseInt(number, 10);
+    return parseInt(number.toString(), 10);
   },
   [DATA_TYPE_NUMBER]: (v) => {
     if (v === '') {
@@ -56,14 +63,14 @@ const map = {
   },
   [DATA_TYPE_JSON]: (v) => {
     try {
-      return JSON.parse(v);
-    } catch (error) { // eslint-disable-line
+      return JSON.parse(v as string);
+    } catch {
       return null;
     }
   },
   [DATA_TYPE_OBJECT]: (v) => {
     try {
-      const d = JSON.parse(v);
+      const d = JSON.parse(v as string);
       if (Array.isArray(d)) {
         return null;
       }
@@ -71,24 +78,24 @@ const map = {
         return null;
       }
       return d;
-    } catch (error) { // eslint-disable-line
+    } catch {
       return null;
     }
   },
   [DATA_TYPE_ARRAY]: (v) => {
     try {
-      const d = JSON.parse(v);
+      const d = JSON.parse(v as string);
       if (Array.isArray(d)) {
         return d;
       }
       return [];
-    } catch (error) { // eslint-disable-line
+    } catch {
       return [];
     }
   },
 };
 
-const typeNameMap = {
+const typeNameMap: Record<DataType, string> = {
   [DATA_TYPE_NUMBER]: 'number',
   [DATA_TYPE_STRING]: 'string',
   [DATA_TYPE_INTEGER]: 'integer',
@@ -98,7 +105,7 @@ const typeNameMap = {
   [DATA_TYPE_OBJECT]: 'object',
 };
 
-export default (value, type) => {
+export default function checkout(value: unknown, type: DataType): unknown {
   if (type == null) {
     throw new Error('data type is empty');
   }
@@ -128,4 +135,4 @@ export default (value, type) => {
     return type === DATA_TYPE_ARRAY ? [] : null;
   }
   return map[type](value);
-};
+}

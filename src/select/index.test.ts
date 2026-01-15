@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import test from 'node:test';
 
-import select from './index.mjs';
+import select from './index.js';
 
 test('select > index', () => {
   assert.throws(() => {
@@ -656,14 +656,14 @@ test('select > index, resolve', () => {
   assert.equal(
     select({
       type: 'integer',
-      resolve: (v) => v + 1,
+      resolve: (v) => (v as number) + 1,
     })(88),
     89,
   );
   assert.equal(
     select(['age', {
       type: 'integer',
-      resolve: (v) => `${v + 1}`,
+      resolve: (v) => `${(v as number) + 1}`,
     }])({ age: 88 }),
     89,
   );
@@ -673,11 +673,11 @@ test('select > index, resolve', () => {
       properties: {
         name: {
           type: 'string',
-          resolve: (a, b) => `${a}_${b.aa}`,
+          resolve: (a, b) => `${a}_${(b as Record<string, string>).aa}`,
         },
         age: {
           type: 'integer',
-          resolve: (a) => a + 1,
+          resolve: (a) => (a as number) + 1,
         },
       },
     })({
@@ -716,11 +716,11 @@ test('select > index, resolve', () => {
       properties: {
         name: {
           type: 'string',
-          resolve: (a, b) => `${a}_${b.aa}`,
+          resolve: (a, b) => `${a}_${(b as Record<string, string>).aa}`,
         },
         age: ['big', {
           type: 'integer',
-          resolve: (a) => a + 1,
+          resolve: (a) => (a as number) + 1,
         }],
       },
     })({
@@ -739,7 +739,7 @@ test('select > index, resolve', () => {
       properties: {
         name: {
           type: 'string',
-          resolve: (a, b) => `${a}_${b.aa}`,
+          resolve: (a, b) => `${a}_${(b as Record<string, string>).aa}`,
         },
         obj: {
           type: 'object',
@@ -749,11 +749,11 @@ test('select > index, resolve', () => {
             },
             age: ['big', {
               type: 'integer',
-              resolve: (a) => a + 1,
+              resolve: (a) => (a as number) + 1,
             }],
             ding: {
               type: 'string',
-              resolve: (a, b) => `${b.name}_${a}`,
+              resolve: (a, b) => `${(b as Record<string, string>).name}_${a}`,
             },
           },
         },
@@ -824,7 +824,7 @@ test('select > index, resolve pathList', () => {
           properties: {
             token: ['.', {
               type: 'string',
-              resolve: (d) => `${d.name}_${d.age}`,
+              resolve: (d) => `${(d as Record<string, string>).name}_${(d as Record<string, number>).age}`,
             }],
             name: {
               type: 'string',

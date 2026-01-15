@@ -3,18 +3,25 @@
   "version": "0.4.0",
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "npx tsx --test src/checkout.test.ts src/parseDotPath.test.ts src/select/check.test.ts src/select/index.test.ts",
+    "build": "tsc",
+    "check": "tsc --noEmit"
   },
-  "main": "./src/index.mjs",
+  "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.mjs",
+    ".": "./src/index.ts",
     "./package.json": "./package.json"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@types/lodash": "^4.17.23",
+    "@types/node": "^25.0.8",
     "eslint": "^9.22.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
-    "globals": "^17.0.0"
+    "globals": "^17.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"

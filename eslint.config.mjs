@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import globals from 'globals';
 
@@ -6,24 +7,27 @@ export default [
   {
     ignores: [
       'node_modules/*',
+      'dist/*',
     ],
   },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     plugins: {
       'simple-import-sort': simpleImportSort,
     },
     files: [
-      'src/**/*.mjs',
-      '_index.mjs',
-      'scripts/**/*.mjs',
-      'eslint.config.mjs',
+      'src/**/*.ts',
+      'src/**/*.tsx',
     ],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
         ...globals.node,
+      },
+      parserOptions: {
+        project: './tsconfig.json',
       },
     },
     rules: {
