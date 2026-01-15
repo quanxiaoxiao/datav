@@ -1,7 +1,7 @@
-import checkout from './checkout.js';
+import { parseValueByType } from './parseValueByType.js';
 import select from './select/index.js';
 
 export {
-  checkout,
+  parseValueByType,
   select,
 };

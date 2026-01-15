@@ -1,5 +1,5 @@
-import checkout from '../checkout.js';
 import { createDataAccessor } from '../createDataAccessor.js';
+import { parseValueByType } from '../parseValueByType.js';
 import { isEmpty,isPlainObject } from '../utils.js';
 import check from './check.js';
 
@@ -72,7 +72,7 @@ const select: SelectFn = (express) => {
       if (express.resolve) {
         value = express.resolve(value, root);
       }
-      return checkout(value, express.type);
+      return parseValueByType(value, express.type);
     };
   }
   if (express.resolve) {

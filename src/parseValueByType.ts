@@ -117,7 +117,7 @@ const typeNameMap: Record<DataType, string> = {
   [DATA_TYPE_OBJECT]: 'object',
 };
 
-export default function parseValueByType(value: unknown, type: DataType): unknown {
+export function parseValueByType(value: unknown, type: DataType): unknown {
   if (type == null) {
     throw new Error('data type is empty');
   }
@@ -154,12 +154,12 @@ export default function parseValueByType(value: unknown, type: DataType): unknow
 }
 
 export {
-  DATA_TYPE_NUMBER,
-  DATA_TYPE_STRING,
-  DATA_TYPE_BOOLEAN,
-  DATA_TYPE_JSON,
   DATA_TYPE_ARRAY,
-  DATA_TYPE_OBJECT,
+  DATA_TYPE_BOOLEAN,
   DATA_TYPE_INTEGER,
+  DATA_TYPE_JSON,
+  DATA_TYPE_NUMBER,
+  DATA_TYPE_OBJECT,
+  DATA_TYPE_STRING,
   type DataType,
 };
