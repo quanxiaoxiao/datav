@@ -1,5 +1,5 @@
 import { createArrayAccessor } from './createArrayAccessor.js';
-import getValueOfPathList from './getValueOfPathList.js';
+import { createPathAccessor } from './createPathAccessor.js';
 import { parseDotPath } from './parseDotPath.js';
 
 export default function getValueOfPathname(pathname: string | number | null): (data: unknown) => unknown {
@@ -18,5 +18,5 @@ export default function getValueOfPathname(pathname: string | number | null): (d
   if (type !== 'string') {
     return () => null;
   }
-  return getValueOfPathList(parseDotPath(pathname as string));
+  return createPathAccessor(parseDotPath(pathname as string));
 }
