@@ -1143,3 +1143,438 @@ test('createDataTransformer object empty properties', () => {
     ret,
   );
 });
+
+describe('createDataTransformer', () => {
+
+  describe('基础类型转换', () => {
+    test('应该正确转换 string 类型', () => {
+      const schema = { type: 'string' };
+      const transform = createDataTransformer(schema);
+
+      assert.strictEqual(transform(123), '123');
+      assert.strictEqual(transform('hello'), 'hello');
+      assert.strictEqual(transform(null), null);
+    });
+
+    test('应该正确转换 number 类型', () => {
+      const schema = { type: 'number' };
+      const transform = createDataTransformer(schema);
+
+      assert.strictEqual(transform('123'), 123);
+      assert.strictEqual(transform(456), 456);
+      assert.strictEqual(transform('3.14'), 3.14);
+    });
+
+    test('应该正确转换 integer 类型', () => {
+      const schema = { type: 'integer' };
+      const transform = createDataTransformer(schema);
+
+      assert.strictEqual(transform('123'), 123);
+      assert.strictEqual(transform(456.78), 456);
+    });
+
+    test('应该正确转换 boolean 类型', () => {
+      const schema = { type: 'boolean' };
+      const transform = createDataTransformer(schema);
+
+      assert.strictEqual(transform(1), true);
+      assert.strictEqual(transform(0), false);
+      assert.strictEqual(transform('true'), true);
+    });
+
+    test('应该支持 resolve 函数', () => {
+      const schema = {
+        type: 'string',
+        resolve: (value: unknown) => `prefix_${value}`
+      };
+      const transform = createDataTransformer(schema);
+
+      assert.strictEqual(transform('test'), 'prefix_test');
+    });
+
+    test('resolve 函数应该接收 root 参数', () => {
+      const schema = {
+        type: 'string',
+        resolve: (value: unknown, root: any) => root.prefix + value
+      };
+      const transform = createDataTransformer(schema);
+      const data = { prefix: 'pre_', value: 'test' };
+
+      assert.strictEqual(transform('test', data), 'pre_test');
+    });
+  });
+
+  describe('对象类型转换', () => {
+    test('应该转换简单对象', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' }
+        }
+      };
+      const transform = createDataTransformer(schema);
+      const data = { name: 'Alice', age: '25' };
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, { name: 'Alice', age: 25 });
+    });
+
+    test('应该处理嵌套对象', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          user: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              age: { type: 'number' }
+            }
+          }
+        }
+      };
+      const transform = createDataTransformer(schema);
+      const data = {
+        user: { name: 'Bob', age: '30' }
+      };
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, {
+        user: { name: 'Bob', age: 30 }
+      });
+    });
+
+    test('应该处理空 properties 的对象', () => {
+      const schema = { type: 'object', properties: {} };
+      const transform = createDataTransformer(schema);
+
+      assert.deepStrictEqual(transform({ a: 1, b: 2 }), { a: 1, b: 2 });
+      assert.deepStrictEqual(transform('not an object'), {});
+    });
+
+    test('应该处理 null 或 undefined 数据', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' }
+        }
+      };
+      const transform = createDataTransformer(schema);
+
+      const result = transform(null);
+      assert.ok(result);
+      assert.strictEqual(result.name, null);
+    });
+  });
+
+  describe('数组类型转换', () => {
+    test('应该转换基础类型数组', () => {
+      const schema = {
+        type: 'array',
+        properties: ['', { type: 'number' }]
+      };
+      const transform = createDataTransformer(schema);
+      const data = ['1', '2', '3'];
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, [1, 2, 3]);
+    });
+
+    test('应该转换对象数组', () => {
+      const schema = {
+        type: 'array',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' }
+        }
+      };
+      const transform = createDataTransformer(schema);
+      const data = [
+        { name: 'Alice', age: '25' },
+        { name: 'Bob', age: '30' }
+      ];
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, [
+        { name: 'Alice', age: 25 },
+        { name: 'Bob', age: 30 }
+      ]);
+    });
+
+    test('应该处理带路径的数组项', () => {
+      const schema = {
+        type: 'array',
+        properties: ['user.name', { type: 'string' }]
+      };
+      const transform = createDataTransformer(schema);
+      const data = [
+        { user: { name: 'Alice' } },
+        { user: { name: 'Bob' } }
+      ];
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, ['Alice', 'Bob']);
+    });
+
+    test('应该处理非数组数据（对象形式）', () => {
+      const schema = {
+        type: 'array',
+        properties: {
+          name: { type: 'string' }
+        }
+      };
+      const transform = createDataTransformer(schema);
+      const data = { name: 'Alice' };
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, [{ name: 'Alice' }]);
+    });
+
+    test('应该处理非数组数据（tuple 形式）', () => {
+      const schema = {
+        type: 'array',
+        properties: ['', { type: 'string' }]
+      };
+      const transform = createDataTransformer(schema);
+
+      const result = transform('not an array');
+      assert.deepStrictEqual(result, []);
+    });
+
+    test('应该处理空 properties 数组', () => {
+      const schema = {
+        type: 'array',
+        properties: {}
+      };
+      const transform = createDataTransformer(schema);
+
+      assert.deepStrictEqual(transform('not an array'), []);
+      assert.deepStrictEqual(transform([1, 2]), [1, 2]);
+    });
+  });
+
+  describe('路径访问 (pathname)', () => {
+    test('应该支持相对路径访问', () => {
+      const schema = ['user.name', { type: 'string' }];
+      const transform = createDataTransformer(schema);
+      const data = { user: { name: 'Alice' } };
+
+      const result = transform(data);
+      assert.strictEqual(result, 'Alice');
+    });
+
+    test('应该支持根路径访问 ($)', () => {
+      const schema = ['$root.config', { type: 'string' }];
+      const transform = createDataTransformer(schema);
+      const data = { user: 'Alice' };
+      const root = { root: { config: 'test' } };
+
+      const result = transform(data, root);
+      assert.strictEqual(result, 'test');
+    });
+
+    test('应该支持数组中的根路径访问', () => {
+      const schema = {
+        type: 'array',
+        properties: ['$globalValue', { type: 'string' }]
+      };
+      const transform = createDataTransformer(schema);
+      const data = [1, 2, 3];
+      const root = { globalValue: 'shared' };
+
+      const result = transform(data, root);
+      assert.deepStrictEqual(result, ['shared', 'shared', 'shared']);
+    });
+
+    test('应该处理点号路径', () => {
+      const schema = {
+        type: 'array',
+        properties: ['.', { type: 'number' }]
+      };
+      const transform = createDataTransformer(schema);
+      const data = [1, 2, 3];
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, [1, 2, 3]);
+    });
+
+    test('应该在 pathname 中处理 null 返回值', () => {
+      const schema = {
+        type: 'array',
+        properties: ['$missing.path', { type: 'string' }]
+      };
+      const transform = createDataTransformer(schema);
+      const data = [1, 2, 3];
+      const root = { other: 'value' };
+
+      const result = transform(data, root);
+      assert.deepStrictEqual(result, []);
+    });
+  });
+
+  describe('复杂场景', () => {
+    test('应该处理深度嵌套结构', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          users: {
+            type: 'array',
+            properties: {
+              name: { type: 'string' },
+              profile: {
+                type: 'object',
+                properties: {
+                  age: { type: 'number' },
+                  active: { type: 'boolean' }
+                }
+              }
+            }
+          }
+        }
+      };
+      const transform = createDataTransformer(schema);
+      const data = {
+        users: [
+          {
+            name: 'Alice',
+            profile: { age: '25', active: 1 }
+          },
+          {
+            name: 'Bob',
+            profile: { age: '30', active: 0 }
+          }
+        ]
+      };
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, {
+        users: [
+          {
+            name: 'Alice',
+            profile: { age: 25, active: true }
+          },
+          {
+            name: 'Bob',
+            profile: { age: 30, active: false }
+          }
+        ]
+      });
+    });
+
+    test('应该在嵌套结构中正确传递 root', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          items: {
+            type: 'array',
+            properties: {
+              value: {
+                type: 'string',
+                resolve: (value: unknown, root: any) => `${root.prefix}_${value}`
+              }
+            }
+          }
+        }
+      };
+      const transform = createDataTransformer(schema);
+      const data = {
+        prefix: 'test',
+        items: [{ value: 'a' }, { value: 'b' }]
+      };
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, {
+        items: [
+          { value: 'test_a' },
+          { value: 'test_b' }
+        ]
+      });
+    });
+  });
+
+  describe('错误处理', () => {
+    test('应该在 pathname 格式错误时抛出异常', () => {
+      const invalidSchema = [123, { type: 'string' }];
+
+      assert.throws(
+        () => createDataTransformer(invalidSchema as any),
+        /Invalid schema expression/
+      );
+    });
+
+    test('应该在 pathname 数组第二项不是对象时抛出异常', () => {
+      const invalidSchema = ['path', 'not an object'];
+
+      assert.throws(
+        () => createDataTransformer(invalidSchema as any),
+        /Invalid schema expression/
+      );
+    });
+
+    test('应该在使用 resolve 于 array/object 时发出警告', () => {
+      const consoleWarnSpy = mock.method(console, 'warn');
+
+      const schema = {
+        type: 'array',
+        properties: {},
+        resolve: () => {}
+      };
+
+      createDataTransformer(schema);
+
+      assert.strictEqual(consoleWarnSpy.mock.calls.length, 1);
+      assert.match(
+        consoleWarnSpy.mock.calls[0].arguments[0] as string,
+        /does not support resolve/
+      );
+
+      consoleWarnSpy.mock.restore();
+    });
+  });
+
+  describe('边界情况', () => {
+    test('应该处理空数组', () => {
+      const schema = {
+        type: 'array',
+        properties: {
+          name: { type: 'string' }
+        }
+      };
+      const transform = createDataTransformer(schema);
+
+      const result = transform([]);
+      assert.deepStrictEqual(result, []);
+    });
+
+    test('应该处理包含 null 元素的数组', () => {
+      const schema = {
+        type: 'array',
+        properties: ['', { type: 'string' }]
+      };
+      const transform = createDataTransformer(schema);
+      const data = [null, 'test', undefined];
+
+      const result = transform(data);
+      assert.deepStrictEqual(result, [null, 'test', null]);
+    });
+
+    test('应该处理缺失字段', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' },
+          email: { type: 'string' }
+        }
+      };
+      const transform = createDataTransformer(schema);
+      const data = { name: 'Alice' };
+
+      const result = transform(data);
+      assert.strictEqual(result.name, 'Alice');
+      assert.strictEqual(result.age, null);
+      assert.strictEqual(result.email, null);
+    });
+  });
+});
+
