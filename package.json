@@ -29,7 +29,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "test": "npx tsx --test src/checkout.test.ts src/parseDotPath.test.ts src/select/check.test.ts src/select/index.test.ts",
+    "test": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/**/*.test.ts'",
     "build": "tsc && rm -rf dist/*.test.* dist/**/*.test.*",
     "check": "tsc --noEmit",
     "lint": "eslint .",
