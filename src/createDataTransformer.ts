@@ -1,5 +1,5 @@
 import { createDataAccessor } from './createDataAccessor.js';
-import { DataVError, ERROR_CODES } from './errors.js';
+import { DataVError } from './errors.js';
 import { parseValueByType } from './parseValueByType.js';
 import { isEmpty, isPlainObject } from './utils.js';
 import { type ExpressSchema,validateExpressSchema } from './validateExpressSchema.js';

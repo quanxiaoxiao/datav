@@ -1,5 +1,5 @@
+import { DataVError } from './errors.js';
 import { isPlainObject } from './utils.js';
-import { DataVError, ERROR_CODES } from './errors.js';
 
 export interface ExpressSchema {
   type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
@@ -110,12 +110,12 @@ const validateSchemaType = (schema: ExpressSchema): ValidationResult => {
   }
 
   switch (schema.type) {
-    case 'object':
-      return validateObjectType(schema);
-    case 'array':
-      return validateArrayType(schema);
-    default:
-      return validateBasicType(schema);
+  case 'object':
+    return validateObjectType(schema);
+  case 'array':
+    return validateArrayType(schema);
+  default:
+    return validateBasicType(schema);
   }
 };
 

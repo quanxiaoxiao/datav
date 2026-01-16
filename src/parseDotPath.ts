@@ -1,4 +1,4 @@
-import { DataVError, ERROR_CODES } from './errors.js';
+import { DataVError } from './errors.js';
 
 export function parseDotPath(path: string): string[] {
   const normalizedPath = path.startsWith('.') ? path.slice(1) : path;

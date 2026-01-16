@@ -1,6 +1,5 @@
 import {
   DataVError,
-  ERROR_CODES,
 } from './errors.js';
 import { isPlainObject } from './utils.js';
 
@@ -110,7 +109,6 @@ const typeTransformers: Record<DataType, ValueTransformer> = {
   },
 };
 
-// 类型名称映射表(用于 typeof 检查)
 const typeNameMap: Record<DataType, string> = {
   [DATA_TYPE_NUMBER]: 'number',
   [DATA_TYPE_STRING]: 'string',

@@ -17,6 +17,7 @@ export {
   type DataVErrorDetails,
   ERROR_CODES,
   type ErrorCode,
+  type ExpressSchema,
   getErrorCode,
   isDataVError,
   parseValueByType,
