@@ -2,26 +2,26 @@ import { createDataAccessor } from './createDataAccessor.js';
 import { DataVError } from './errors.js';
 import { parseValueByType } from './parseValueByType.js';
 import { isEmpty, isPlainObject } from './utils.js';
-import { type ExpressSchema,validateExpressSchema } from './validateExpressSchema.js';
+import { type ExpressSchema } from './validateExpressSchema.js';
 
 interface SchemaExpress {
   type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
-  properties?: Record<string, SchemaExpress> | [string, SchemaExpress] | SchemaExpress[];
+  properties?: Record<string, unknown> | [string, unknown] | unknown[];
   resolve?: (value: unknown, root: unknown) => unknown;
 }
 
 interface FieldHandler {
   fieldKey: string;
-  schema: SchemaExpress;
+  schema: unknown;
   transform: (data: unknown, root: unknown) => unknown;
 }
 
 type SchemaTransformer = (data: unknown, root?: unknown) => unknown;
 
-type TransformFn = (schema: SchemaExpress | [string, SchemaExpress]) => SchemaTransformer;
+type TransformFn = (schema: unknown) => SchemaTransformer;
 
 const createObjectTransformer = (
-  properties: Record<string, SchemaExpress>,
+  properties: Record<string, unknown>,
   createTransform: TransformFn,
 ): ((data: unknown, root: unknown) => object) => {
   const handlers: FieldHandler[] = Object.entries(properties).map(([fieldKey, schema]) => ({
@@ -46,9 +46,6 @@ const createObjectTransformer = (
   };
 };
 
-/**
- * 处理路径访问的数据提取
- */
 const extractDataByPath = (pathname: string, data: unknown, root: unknown): unknown => {
   if (pathname.startsWith('$')) {
     return createDataAccessor(pathname.slice(1))(root);
@@ -56,9 +53,6 @@ const extractDataByPath = (pathname: string, data: unknown, root: unknown): unkn
   return createDataAccessor(pathname)(data);
 };
 
-/**
- * 创建基础类型转换器
- */
 const createPrimitiveTransformer = (schema: SchemaExpress): SchemaTransformer => {
   return (value: unknown, root?: unknown) => {
     const rootData = root ?? value;
@@ -67,20 +61,14 @@ const createPrimitiveTransformer = (schema: SchemaExpress): SchemaTransformer =>
   };
 };
 
-/**
- * 创建简单对象转换器（无 properties）
- */
 const createPlainObjectTransformer = (): SchemaTransformer => {
   return (value: unknown) => {
     return isPlainObject(value) ? value : {};
   };
 };
 
-/**
- * 创建数组转换器（tuple 形式的 properties）
- */
 const createArrayTransformer = (
-  properties: [string, SchemaExpress],
+  properties: [string, unknown],
   createTransform: TransformFn,
 ): SchemaTransformer => {
   const [pathname, itemSchema] = properties;
@@ -106,11 +94,8 @@ const createArrayTransformer = (
   };
 };
 
-/**
- * 创建数组对象转换器（对象形式的 properties）
- */
 const createArrayObjectTransformer = (
-  properties: Record<string, SchemaExpress>,
+  properties: Record<string, unknown>,
   createTransform: TransformFn,
 ): SchemaTransformer => {
   const objectTransform = createObjectTransformer(properties, createTransform);
@@ -126,16 +111,26 @@ const createArrayObjectTransformer = (
   };
 };
 
-/**
- * 创建数据转换器
- * 根据 schema 表达式递归创建数据转换函数
- */
 export const createDataTransformer: TransformFn = (schema) => {
-  // 处理路径访问形式: [pathname, schema]
   if (Array.isArray(schema)) {
     const [pathname, nestedSchema] = schema;
 
-    if (typeof pathname !== 'string' || !isPlainObject(nestedSchema)) {
+    if (typeof pathname !== 'string') {
+      throw DataVError.invalidTuple(schema);
+    }
+
+    if (Array.isArray(nestedSchema)) {
+      const [rootPath, innerSchema] = nestedSchema;
+      if (typeof rootPath === 'string' && rootPath === '$') {
+        const innerTransform = createDataTransformer(innerSchema);
+        return (data: unknown, root?: unknown) => {
+          return innerTransform(root ?? data, root ?? data);
+        };
+      }
+      throw DataVError.invalidTuple(schema);
+    }
+
+    if (!isPlainObject(nestedSchema)) {
       throw DataVError.invalidTuple(schema);
     }
 
@@ -148,27 +143,59 @@ export const createDataTransformer: TransformFn = (schema) => {
     };
   }
 
-  validateExpressSchema(schema as ExpressSchema);
-
-  if (['string', 'number', 'boolean', 'integer'].includes(schema.type)) {
-    return createPrimitiveTransformer(schema);
+  if (!isPlainObject(schema)) {
+    throw DataVError.invalidTuple(schema);
   }
 
-  if (schema.resolve) {
+  const schemaObj = schema as Record<string, unknown>;
+  const type = schemaObj.type as string | undefined;
+  const resolve = schemaObj.resolve as ((value: unknown, root: unknown) => unknown) | undefined;
+
+  if (resolve !== undefined && typeof resolve !== 'function') {
+    throw DataVError.invalidSchema(schema as ExpressSchema, 'resolve must be a function');
+  }
+
+  if (type && ['string', 'number', 'boolean', 'integer'].includes(type)) {
+    return createPrimitiveTransformer(schema as SchemaExpress);
+  }
+
+  if (schemaObj.resolve) {
     console.warn('Data type `array` or `object` does not support resolve function');
   }
 
-  if (schema.type === 'object') {
-    if (isEmpty(schema.properties)) {
+  if (type === 'object') {
+    const properties = schemaObj.properties as Record<string, unknown> | undefined;
+    if (properties === undefined) {
+      throw DataVError.missingProperties('object');
+    }
+    if (Array.isArray(properties)) {
+      throw DataVError.invalidSchema(schema as ExpressSchema, 'object properties must be object, not array');
+    }
+    if (!isPlainObject(properties)) {
+      throw DataVError.invalidSchema(schema as ExpressSchema, 'object properties must be object');
+    }
+    if (isEmpty(properties)) {
       return createPlainObjectTransformer();
     }
-    return createObjectTransformer(schema.properties as Record<string, SchemaExpress>, createDataTransformer);
+    return createObjectTransformer(properties, createDataTransformer);
   }
 
-  if (Array.isArray(schema.properties)) {
-    return createArrayTransformer(schema.properties as [string, SchemaExpress], createDataTransformer);
+  if (type === 'array') {
+    const properties = schemaObj.properties;
+    if (properties === undefined) {
+      throw DataVError.missingProperties('array');
+    }
+    if (Array.isArray(properties)) {
+      if (properties.length !== 2) {
+        throw DataVError.invalidSchema(schema as ExpressSchema, 'array properties tuple must have exactly 2 elements');
+      }
+      return createArrayTransformer(properties as [string, unknown], createDataTransformer);
+    }
+    if (!isPlainObject(properties)) {
+      throw DataVError.invalidSchema(schema as ExpressSchema, 'array properties must be object or tuple');
+    }
+    return createArrayObjectTransformer(properties as Record<string, unknown>, createDataTransformer);
   }
 
-  // 处理数组对象类型
-  return createArrayObjectTransformer(schema.properties as Record<string, SchemaExpress>, createDataTransformer);
+  throw DataVError.invalidSchema(schema as ExpressSchema, `Unknown type: ${type}`);
 };

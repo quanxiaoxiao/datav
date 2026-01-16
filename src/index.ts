@@ -7,8 +7,9 @@ import {
   getErrorCode,
   isDataVError,
 } from './errors.js';
-import { type DataType,parseValueByType } from './parseValueByType.js';
-import { type ExpressSchema,validateExpressSchema } from './validateExpressSchema.js';
+import { type DataType, parseValueByType } from './parseValueByType.js';
+import * as schema from './schema.js';
+import { type ExpressSchema, validateExpressSchema } from './validateExpressSchema.js';
 
 export {
   createDataTransformer,
@@ -21,5 +22,6 @@ export {
   getErrorCode,
   isDataVError,
   parseValueByType,
+  schema,
   validateExpressSchema,
 };

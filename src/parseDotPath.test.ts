@@ -1,5 +1,5 @@
-import assert from 'node:assert';
-import test from 'node:test';
+import * as assert from 'node:assert';
+import { test } from 'node:test';
 
 import { parseDotPath } from './parseDotPath.js';
 import { isDataVError, ERROR_CODES } from './errors.js';
