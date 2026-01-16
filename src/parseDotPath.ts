@@ -1,65 +1,50 @@
 import { DataVError } from './errors.js';
 
 export function parseDotPath(input: string): string[] {
-  if (input === '' || input === '.') {
+  if (!input || input === '.') {
     return [];
   }
 
   const segments: string[] = [];
   let buffer = '';
+  let isEscaping = false;
 
-  let i = 0;
-  let escaping = false;
-  let isStart = true;
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i];
 
-  const throwInvalid = (): never => {
-    throw DataVError.invalidPathSegment(input);
-  };
-
-  while (i < input.length) {
-    const ch = input[i];
-
-    if (escaping) {
-      buffer += ch;
-      escaping = false;
-      i++;
+    if (isEscaping) {
+      buffer += char;
+      isEscaping = false;
       continue;
     }
 
-    if (ch === '\\') {
-      escaping = true;
-      i++;
+    if (char === '\\') {
+      isEscaping = true;
       continue;
     }
 
-    if (ch === '.') {
+    if (char === '.') {
       if (buffer.length === 0) {
-        if (isStart) {
-          isStart = false;
-          i++;
+        if (i === 0) {
           continue;
         }
-        throwInvalid();
+        throw DataVError.invalidPathSegment(input);
       }
 
       segments.push(buffer);
       buffer = '';
-      isStart = false;
-      i++;
       continue;
     }
 
-    buffer += ch;
-    isStart = false;
-    i++;
+    buffer += char;
   }
 
-  if (escaping) {
-    throwInvalid();
+  if (isEscaping) {
+    throw DataVError.invalidPathSegment(input);
   }
 
   if (buffer.length === 0) {
-    throwInvalid();
+    throw DataVError.invalidPathSegment(input);
   }
 
   segments.push(buffer);
