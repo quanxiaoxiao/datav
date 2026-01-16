@@ -1,3 +1,5 @@
+import { DataVError, ERROR_CODES } from './errors.js';
+
 export function parseDotPath(path: string): string[] {
   const normalizedPath = path.startsWith('.') ? path.slice(1) : path;
   if (normalizedPath === '') {
@@ -7,7 +9,7 @@ export function parseDotPath(path: string): string[] {
     .split(/(?<!\\)\./)
     .map((segment) => segment.replace(/\\\./g, '.'));
   if (segments.some((segment) => segment === '')) {
-    throw new Error(`Path "${path}" parse failed: contains empty segment`);
+    throw DataVError.invalidPathSegment(path);
   }
   return segments;
 }

@@ -1,5 +1,7 @@
 import { Ajv } from 'ajv';
 
+import { DataVError, ERROR_CODES } from './errors.js';
+
 export interface ExpressSchema {
   type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
   properties?: Record<string, unknown> | [string, object];
@@ -52,8 +54,9 @@ const validateSchema = ajv.compile(schemaValidationRules);
 
 export function validateExpressSchema(schema: ExpressSchema): void {
   if (!validateSchema(schema)) {
-    const schemaStr = JSON.stringify(schema);
-    const errorsStr = JSON.stringify(validateSchema.errors);
-    throw new Error(`Invalid schema: ${schemaStr}. Validation errors: ${errorsStr}`);
+    const errorsStr = validateSchema.errors
+      ?.map((e) => `${e.instancePath || 'root'}: ${e.message}`)
+      .join('; ');
+    throw DataVError.invalidSchema(schema, errorsStr || 'unknown error');
   }
 }

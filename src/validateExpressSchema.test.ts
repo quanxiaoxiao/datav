@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import { describe, test } from 'node:test';
 
 import { validateExpressSchema } from './validateExpressSchema.js';
+import { isDataVError, ERROR_CODES } from './errors.js';
 
 // 用于测试无效类型输入
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -278,8 +279,9 @@ describe('validateExpressSchema', () => {
         validateExpressSchema({ type: 'invalid' } as AnySchema);
         assert.fail('应该抛出错误');
       } catch (error: unknown) {
-        assert.match((error as Error).message, /Invalid schema/);
-        assert.match((error as Error).message, /invalid/);
+        assert.ok(isDataVError(error), 'Should be a DataVError');
+        assert.strictEqual((error as { code: string }).code, ERROR_CODES.INVALID_SCHEMA);
+        assert.match((error as Error).message, /\[INVALID_SCHEMA\]/);
       }
     });
 
@@ -288,7 +290,9 @@ describe('validateExpressSchema', () => {
         validateExpressSchema({ type: 'object' } as AnySchema);
         assert.fail('应该抛出错误');
       } catch (error: unknown) {
-        assert.match((error as Error).message, /Validation errors/);
+        assert.ok(isDataVError(error), 'Should be a DataVError');
+        assert.match((error as Error).message, /\[INVALID_SCHEMA\]/);
+        assert.match((error as Error).message, /properties/);
       }
     });
   });

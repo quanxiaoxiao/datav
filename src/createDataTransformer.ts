@@ -1,4 +1,5 @@
 import { createDataAccessor } from './createDataAccessor.js';
+import { DataVError, ERROR_CODES } from './errors.js';
 import { parseValueByType } from './parseValueByType.js';
 import { isEmpty, isPlainObject } from './utils.js';
 import { type ExpressSchema,validateExpressSchema } from './validateExpressSchema.js';
@@ -135,7 +136,7 @@ export const createDataTransformer: TransformFn = (schema) => {
     const [pathname, nestedSchema] = schema;
 
     if (typeof pathname !== 'string' || !isPlainObject(nestedSchema)) {
-      throw new Error(`Invalid schema expression: ${JSON.stringify(schema)}`);
+      throw DataVError.invalidTuple(schema);
     }
 
     const nestedTransform = createDataTransformer(nestedSchema);

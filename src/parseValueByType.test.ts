@@ -11,17 +11,46 @@ import {
   DATA_TYPE_STRING,
   parseValueByType,
 } from './parseValueByType.js';
+import { isDataVError, ERROR_CODES } from './errors.js';
 
 describe('parseValueByType', () => {
   describe('参数验证', () => {
     it('应该在类型参数为空时抛出错误', () => {
-      assert.throws(() => parseValueByType('test', null as unknown as string), /data type is empty/);
-      assert.throws(() => parseValueByType('test', undefined as unknown as string), /data type is empty/);
+      assert.throws(
+        () => parseValueByType('test', null as unknown as string),
+        (err: unknown) => {
+          assert.ok(isDataVError(err));
+          assert.strictEqual((err as { code: string }).code, ERROR_CODES.EMPTY_DATA_TYPE);
+          return true;
+        },
+      );
+      assert.throws(
+        () => parseValueByType('test', undefined as unknown as string),
+        (err: unknown) => {
+          assert.ok(isDataVError(err));
+          assert.strictEqual((err as { code: string }).code, ERROR_CODES.EMPTY_DATA_TYPE);
+          return true;
+        },
+      );
     });
 
     it('应该在类型参数无效时抛出错误', () => {
-      assert.throws(() => parseValueByType('aaa', 'bbb' as unknown as string), /invalid data type/);
-      assert.throws(() => parseValueByType('test', 'invalid' as unknown as string), /invalid data type/);
+      assert.throws(
+        () => parseValueByType('aaa', 'bbb' as unknown as string),
+        (err: unknown) => {
+          assert.ok(isDataVError(err));
+          assert.strictEqual((err as { code: string }).code, ERROR_CODES.INVALID_DATA_TYPE);
+          return true;
+        },
+      );
+      assert.throws(
+        () => parseValueByType('test', 'invalid' as unknown as string),
+        (err: unknown) => {
+          assert.ok(isDataVError(err));
+          assert.strictEqual((err as { code: string }).code, ERROR_CODES.INVALID_DATA_TYPE);
+          return true;
+        },
+      );
     });
   });
 

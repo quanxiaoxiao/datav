@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import test from 'node:test';
 
 import { parseDotPath } from './parseDotPath.js';
+import { isDataVError, ERROR_CODES } from './errors.js';
 
 const testCases = (description: string, cases: Array<[string, string[], string?]>): void => {
   test(description, async (t) => {
@@ -13,15 +14,16 @@ const testCases = (description: string, cases: Array<[string, string[], string?]
   });
 };
 
-const errorCases = (description: string, cases: Array<[string, string | null, string?]>): void => {
+const errorCases = (description: string, cases: Array<[string, string]>): void => {
   test(description, async (t) => {
-    for (const [input, errorMsg, testDesc] of cases) {
+    for (const [input, testDesc] of cases) {
       await t.test(testDesc || `输入: "${input}"`, () => {
         assert.throws(
           () => parseDotPath(input),
-          {
-            name: 'Error',
-            message: errorMsg || `Path "${input}" parse failed: contains empty segment`,
+          (err: unknown) => {
+            assert.ok(isDataVError(err), 'Should be a DataVError');
+            assert.strictEqual((err as { code: string }).code, ERROR_CODES.INVALID_PATH_SEGMENT);
+            return true;
           },
         );
       });
@@ -83,19 +85,19 @@ testCases('长路径处理', [
 ]);
 
 errorCases('错误：空段检测', [
-  ['..aa', null, '开头的连续点'],
-  ['a..b', null, '中间的连续点'],
-  ['aa..bb', null, '中间的连续点（长名称）'],
-  ['a...b', null, '多个连续点'],
-  ['bb.', null, '结尾的点'],
-  ['a.b.', null, '多段后结尾的点'],
-  ['a.b.c.', null, '更多段后结尾的点'],
-  ['.a.', null, '前导点 + 结尾点'],
-  ['.a\\.b..c\\.d.e\\..f', null, '复杂的空段错误'],
+  ['..aa', '开头的连续点'],
+  ['a..b', '中间的连续点'],
+  ['aa..bb', '中间的连续点（长名称）'],
+  ['a...b', '多个连续点'],
+  ['bb.', '结尾的点'],
+  ['a.b.', '多段后结尾的点'],
+  ['a.b.c.', '更多段后结尾的点'],
+  ['.a.', '前导点 + 结尾点'],
+  ['.a\\.b..c\\.d.e\\..f', '复杂的空段错误'],
 ]);
 
 test('parseDotPath - 完整兼容性测试', () => {
-  const validCases = [
+  const validCases: Array<[string, string[]]> = [
     ['', []],
     ['.', []],
     ['.aa', ['aa']],

@@ -1,3 +1,7 @@
+import {
+  DataVError,
+  ERROR_CODES,
+} from './errors.js';
 import { isPlainObject } from './utils.js';
 
 const DATA_TYPE_NUMBER = 'number';
@@ -8,7 +12,7 @@ const DATA_TYPE_ARRAY = 'array';
 const DATA_TYPE_OBJECT = 'object';
 const DATA_TYPE_INTEGER = 'integer';
 
-type DataType =
+export type DataType =
   | typeof DATA_TYPE_NUMBER
   | typeof DATA_TYPE_STRING
   | typeof DATA_TYPE_BOOLEAN
@@ -119,11 +123,11 @@ const typeNameMap: Record<DataType, string> = {
 
 export function parseValueByType(value: unknown, type: DataType): unknown {
   if (type == null) {
-    throw new Error('data type is empty');
+    throw DataVError.emptyDataType();
   }
 
   if (!Object.hasOwnProperty.call(typeTransformers, type)) {
-    throw new Error(`\`${type}\` is an invalid data type`);
+    throw DataVError.invalidDataType(type);
   }
 
   if (value == null) {
@@ -161,5 +165,4 @@ export {
   DATA_TYPE_NUMBER,
   DATA_TYPE_OBJECT,
   DATA_TYPE_STRING,
-  type DataType,
 };
