@@ -1,134 +1,210 @@
 import * as assert from 'node:assert';
-import { test } from 'node:test';
+import { describe, it } from 'node:test';
 
 import { parseDotPath } from './parseDotPath.js';
 import { isDataVError, ERROR_CODES } from './errors.js';
 
-const testCases = (description: string, cases: Array<[string, string[], string?]>): void => {
-  test(description, async (t) => {
-    for (const [input, expected, testDesc] of cases) {
-      await t.test(testDesc || `输入: "${input}"`, () => {
-        assert.deepStrictEqual(parseDotPath(input), expected);
-      });
-    }
-  });
+/**
+ * 辅助函数：断言路径解析结果
+ */
+const assertParsed = (input: string, expected: string[], message?: string) => {
+  assert.deepStrictEqual(
+    parseDotPath(input),
+    expected,
+    message || `Failed for input: "${input}"`
+  );
 };
 
-const errorCases = (description: string, cases: Array<[string, string]>): void => {
-  test(description, async (t) => {
-    for (const [input, testDesc] of cases) {
-      await t.test(testDesc || `输入: "${input}"`, () => {
-        assert.throws(
-          () => parseDotPath(input),
-          (err: unknown) => {
-            assert.ok(isDataVError(err), 'Should be a DataVError');
-            assert.strictEqual((err as { code: string }).code, ERROR_CODES.INVALID_PATH_SEGMENT);
-            return true;
-          },
-        );
-      });
-    }
-  });
+/**
+ * 辅助函数：断言抛出无效路径错误
+ */
+const assertInvalidPath = (input: string, message?: string) => {
+  assert.throws(
+    () => parseDotPath(input),
+    (err: unknown) => {
+      assert.ok(isDataVError(err), 'Should be a DataVError');
+      assert.strictEqual(
+        (err as { code: string }).code,
+        ERROR_CODES.INVALID_PATH_SEGMENT,
+        'Should have INVALID_PATH_SEGMENT error code'
+      );
+      return true;
+    },
+    message || `Should throw for input: "${input}"`
+  );
 };
 
-testCases('基本路径解析', [
-  ['', [], '空字符串应返回空数组'],
-  ['.', [], '单个点应返回空数组'],
-  ['single', ['single'], '单个段'],
-  ['a.b', ['a', 'b'], '两个段'],
-  ['a.b.c', ['a', 'b', 'c'], '三个段'],
-  ['first.second.third.fourth', ['first', 'second', 'third', 'fourth'], '多个段'],
-]);
+describe('parseDotPath', () => {
+  describe('基础路径解析（Fast Path）', () => {
+    it('空字符串应返回空数组', () => {
+      assertParsed('', []);
+    });
 
-testCases('前导点处理', [
-  ['.aa', ['aa'], '前导点 + 单段'],
-  ['.a.b.c', ['a', 'b', 'c'], '前导点 + 多段'],
-  ['.aa.bb.cc', ['aa', 'bb', 'cc'], '前导点 + 多段（长名称）'],
-]);
+    it('单个点应返回空数组', () => {
+      assertParsed('.', []);
+    });
 
-testCases('转义点号处理', [
-  ['a\\.b', ['a.b'], '单个转义点'],
-  ['a\\.b.c', ['a.b', 'c'], '转义点在中间段'],
-  ['a\\.b\\.c', ['a.b.c'], '多个转义点在同一段'],
-  ['a\\.b\\.c.d', ['a.b.c', 'd'], '连续转义点 + 普通分隔'],
-  ['a.b\\.c.d', ['a', 'b.c', 'd'], '混合转义和非转义'],
-  ['\\.aa', ['.aa'], '转义点在开头'],
-  ['.\\.aa', ['.aa'], '前导点 + 转义点'],
-  ['a.b\\.', ['a', 'b.'], '转义点在结尾'],
-  ['a.b.c\\.', ['a', 'b', 'c.'], '转义点在最后段末尾'],
-  ['\\.\\.\\.', ['...'], '多个连续转义点'],
-  ['a\\\\.b.c', ['a\\', 'b', 'c'], '转义反斜杠 + 点'],
-  ['a\\\\.b\\\\.c', ['a\\', 'b\\', 'c'], '多个转义反斜杠'],
-  ['a\\.\\.b', ['a..b'], '转义的连续点号'],
-]);
+    it('单段路径', () => {
+      assertParsed('a', ['a']);
+      assertParsed('single', ['single']);
+    });
 
-testCases('特殊字符处理', [
-  ['aa. .bb', ['aa', ' ', 'bb'], '空格段'],
-  ['a-b.c_d.e123', ['a-b', 'c_d', 'e123'], '连字符和下划线'],
-  ['用户.姓名.firstName', ['用户', '姓名', 'firstName'], '中文字符'],
-  ['0.1.2', ['0', '1', '2'], '数字段'],
-  ['_private.public', ['_private', 'public'], '下划线开头'],
-  ['$var.prop', ['$var', 'prop'], '美元符号开头'],
-]);
+    it('多段路径', () => {
+      assertParsed('a.b', ['a', 'b']);
+      assertParsed('a.b.c', ['a', 'b', 'c']);
+      assertParsed('first.second.third.fourth', ['first', 'second', 'third', 'fourth']);
+    });
 
-testCases('长路径处理', [
-  [
-    'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p',
-    ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'],
-    '16段长路径',
-  ],
-  [
-    'a\\.b.c\\.d.e',
-    ['a.b', 'c.d', 'e'],
-    '带转义的混合路径',
-  ],
-]);
-
-errorCases('错误：空段检测', [
-  ['..aa', '开头的连续点'],
-  ['a..b', '中间的连续点'],
-  ['aa..bb', '中间的连续点（长名称）'],
-  ['a...b', '多个连续点'],
-  ['bb.', '结尾的点'],
-  ['a.b.', '多段后结尾的点'],
-  ['a.b.c.', '更多段后结尾的点'],
-  ['.a.', '前导点 + 结尾点'],
-  ['.a\\.b..c\\.d.e\\..f', '复杂的空段错误'],
-]);
-
-test('parseDotPath - 完整兼容性测试', () => {
-  const validCases: Array<[string, string[]]> = [
-    ['', []],
-    ['.', []],
-    ['.aa', ['aa']],
-    ['a.b.c', ['a', 'b', 'c']],
-    ['.aa.bb.cc', ['aa', 'bb', 'cc']],
-    ['aa.bb.cc', ['aa', 'bb', 'cc']],
-    ['aa\\.bb.cc', ['aa.bb', 'cc']],
-    ['.\\.aa', ['.aa']],
-    ['\\.aa', ['.aa']],
-    ['aa. .bb', ['aa', ' ', 'bb']],
-    ['a\\.b\\.c', ['a.b.c']],
-    ['a\\.b.c\\.d.e', ['a.b', 'c.d', 'e']],
-    ['a.b.c\\.', ['a', 'b', 'c.']],
-    ['\\.\\.\\.', ['...']],
-    ['a\\\\.b.c', ['a\\', 'b', 'c']],
-    ['a\\\\.b\\\\.c', ['a\\', 'b\\', 'c']],
-  ];
-
-  validCases.forEach(([input, expected]) => {
-    assert.deepStrictEqual(parseDotPath(input), expected, `Failed for input: "${input}"`);
+    it('前导点应被忽略', () => {
+      assertParsed('.a', ['a']);
+      assertParsed('.aa', ['aa']);
+      assertParsed('.a.b.c', ['a', 'b', 'c']);
+      assertParsed('.aa.bb.cc', ['aa', 'bb', 'cc']);
+    });
   });
 
-  const errorInputs = [
-    '..aa',
-    'aa..bb',
-    'bb.',
-    'a.b.c.',
-    '.a\\.b..c\\.d.e\\..f',
-  ];
+  describe('转义字符处理（Slow Path）', () => {
+    it('转义点号', () => {
+      assertParsed('a\\.b', ['a.b']);
+      assertParsed('a\\.b.c', ['a.b', 'c']);
+      assertParsed('a\\.b\\.c', ['a.b.c']);
+      assertParsed('a\\.b\\.c.d', ['a.b.c', 'd']);
+      assertParsed('a.b\\.c.d', ['a', 'b.c', 'd']);
+    });
 
-  errorInputs.forEach((input) => {
-    assert.throws(() => parseDotPath(input), `Should throw for input: "${input}"`);
+    it('转义反斜杠', () => {
+      assertParsed('a\\\\b', ['a\\b']);
+      assertParsed('a\\\\.b.c', ['a\\', 'b', 'c']);
+      assertParsed('a\\\\.b\\\\.c', ['a\\', 'b\\', 'c']);
+    });
+
+    it('混合转义', () => {
+      assertParsed('a\\.b\\\\c', ['a.b\\c']);
+      assertParsed('a\\.b.c\\.d.e', ['a.b', 'c.d', 'e']);
+    });
+
+    it('转义点在段的开头或结尾', () => {
+      assertParsed('\\.aa', ['.aa']);
+      assertParsed('.\\.aa', ['.aa']);
+      assertParsed('a\\.', ['a.']);
+      assertParsed('a.b\\.', ['a', 'b.']);
+      assertParsed('a.b.c\\.', ['a', 'b', 'c.']);
+    });
+
+    it('连续转义点', () => {
+      assertParsed('a\\.\\.b', ['a..b']);
+      assertParsed('\\.\\.\\.', ['...']);
+    });
+  });
+
+  describe('特殊字符支持', () => {
+    it('空格段', () => {
+      assertParsed('aa. .bb', ['aa', ' ', 'bb']);
+    });
+
+    it('连字符和下划线', () => {
+      assertParsed('a-b.c_d.e123', ['a-b', 'c_d', 'e123']);
+    });
+
+    it('Unicode 字符（中文）', () => {
+      assertParsed('用户.姓名.firstName', ['用户', '姓名', 'firstName']);
+    });
+
+    it('数字段', () => {
+      assertParsed('0.1.2', ['0', '1', '2']);
+    });
+
+    it('特殊开头字符', () => {
+      assertParsed('_private.public', ['_private', 'public']);
+      assertParsed('$var.prop', ['$var', 'prop']);
+    });
+  });
+
+  describe('长路径处理', () => {
+    it('16段路径', () => {
+      assertParsed(
+        'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p',
+        ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p']
+      );
+    });
+
+    it('带转义的长路径', () => {
+      assertParsed('a\\.b.c\\.d.e', ['a.b', 'c.d', 'e']);
+    });
+  });
+
+  describe('错误情况：空段检测', () => {
+    it('开头的连续点', () => {
+      assertInvalidPath('..aa');
+      assertInvalidPath('..a');
+    });
+
+    it('中间的连续点', () => {
+      assertInvalidPath('a..b');
+      assertInvalidPath('aa..bb');
+      assertInvalidPath('a...b');
+    });
+
+    it('结尾的点', () => {
+      assertInvalidPath('bb.');
+      assertInvalidPath('a.b.');
+      assertInvalidPath('a.b.c.');
+    });
+
+    it('前导点 + 结尾点', () => {
+      assertInvalidPath('.a.');
+    });
+
+    it('复杂的空段错误', () => {
+      assertInvalidPath('.a\\.b..c\\.d.e\\..f');
+    });
+  });
+
+  describe('错误情况：悬挂转义符', () => {
+    it('单独的反斜杠', () => {
+      assertInvalidPath('a\\');
+      assertInvalidPath('a.b\\');
+    });
+  });
+
+  describe('综合测试：完整兼容性', () => {
+    it('批量验证有效输入', () => {
+      const validCases: Array<[string, string[]]> = [
+        ['', []],
+        ['.', []],
+        ['.aa', ['aa']],
+        ['a.b.c', ['a', 'b', 'c']],
+        ['.aa.bb.cc', ['aa', 'bb', 'cc']],
+        ['aa.bb.cc', ['aa', 'bb', 'cc']],
+        ['aa\\.bb.cc', ['aa.bb', 'cc']],
+        ['.\\.aa', ['.aa']],
+        ['\\.aa', ['.aa']],
+        ['aa. .bb', ['aa', ' ', 'bb']],
+        ['a\\.b\\.c', ['a.b.c']],
+        ['a\\.b.c\\.d.e', ['a.b', 'c.d', 'e']],
+        ['a.b.c\\.', ['a', 'b', 'c.']],
+        ['\\.\\.\\.', ['...']],
+        ['a\\\\.b.c', ['a\\', 'b', 'c']],
+        ['a\\\\.b\\\\.c', ['a\\', 'b\\', 'c']],
+      ];
+
+      validCases.forEach(([input, expected]) => {
+        assertParsed(input, expected);
+      });
+    });
+
+    it('批量验证无效输入', () => {
+      const invalidInputs = [
+        '..aa',
+        'aa..bb',
+        'bb.',
+        'a.b.c.',
+        '.a\\.b..c\\.d.e\\..f',
+      ];
+
+      invalidInputs.forEach(input => {
+        assertInvalidPath(input);
+      });
+    });
   });
 });
