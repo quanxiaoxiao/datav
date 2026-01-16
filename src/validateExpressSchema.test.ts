@@ -1,31 +1,55 @@
 import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
 
-import { validateExpressSchema } from './validateExpressSchema.js';
+import { validateExpressSchema, tryValidateExpressSchema } from './validateExpressSchema.js';
 import { isDataVError, ERROR_CODES } from './errors.js';
 
-// 用于测试无效类型输入
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySchema = any;
+type ExpressSchema = any;
+
+const assertValidSchema = (schema: AnySchema) => {
+  assert.doesNotThrow(() => validateExpressSchema(schema));
+};
+
+const assertInvalidSchema = (schema: AnySchema, pattern?: RegExp) => {
+  assert.throws(
+    () => validateExpressSchema(schema),
+    pattern || /Invalid schema/
+  );
+};
+
+const createObjectSchema = (properties: Record<string, AnySchema>): AnySchema => ({
+  type: 'object',
+  properties,
+});
+
+const createArraySchema = (properties: AnySchema): AnySchema => ({
+  type: 'array',
+  properties,
+});
 
 describe('validateExpressSchema', () => {
   describe('基础类型验证', () => {
     const basicTypes = ['string', 'number', 'boolean', 'integer'] as const;
 
-    basicTypes.forEach(type => {
-      test(`应该通过 ${type} 类型验证`, () => {
-        assert.doesNotThrow(() => {
-          validateExpressSchema({ type });
-        });
+    test('应该通过所有基础类型验证', () => {
+      basicTypes.forEach(type => {
+        assertValidSchema({ type });
       });
     });
 
     test('基础类型可以包含可选的 properties', () => {
-      assert.doesNotThrow(() => {
-        validateExpressSchema({
-          type: 'string',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          properties: ['dataKey'] as any,
+      assertValidSchema({
+        type: 'string',
+        properties: ['dataKey'] as any,
+      });
+    });
+
+    test('基础类型可以包含 resolve 函数', () => {
+      basicTypes.forEach(type => {
+        assertValidSchema({
+          type,
+          resolve: (value: unknown) => value,
         });
       });
     });
@@ -33,253 +57,223 @@ describe('validateExpressSchema', () => {
 
   describe('对象类型验证', () => {
     test('应该通过有效的 object 类型验证', () => {
-      assert.doesNotThrow(() => {
-        validateExpressSchema({
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            age: { type: 'number' },
-          },
-        });
-      });
+      assertValidSchema(createObjectSchema({
+        name: { type: 'string' },
+        age: { type: 'number' },
+      }));
     });
 
     test('应该通过空 properties 的 object 类型验证', () => {
-      assert.doesNotThrow(() => {
-        validateExpressSchema({
-          type: 'object',
-          properties: {},
-        });
-      });
+      assertValidSchema(createObjectSchema({}));
     });
 
     test('object 类型缺少 properties 应该抛出错误', () => {
-      assert.throws(
-        () => validateExpressSchema({ type: 'object' } as AnySchema),
-        /Invalid schema/,
+      assertInvalidSchema(
+        { type: 'object' },
+        /must have required property "properties"/
       );
     });
 
-    test('object 类型的 properties 必须是对象', () => {
-      assert.throws(
-        () => validateExpressSchema({
-          type: 'object',
-          properties: 'invalid',
-        } as AnySchema),
-        /Invalid schema/,
-      );
+    test('object 类型的 properties 必须是对象，不能是其他类型', () => {
+      const invalidProperties = [
+        { value: 'invalid', desc: '字符串' },
+        { value: [], desc: '数组' },
+        { value: 123, desc: '数字' },
+        { value: true, desc: '布尔值' },
+        { value: null, desc: 'null' },
+      ];
+
+      invalidProperties.forEach(({ value, desc }) => {
+        assertInvalidSchema(
+          { type: 'object', properties: value },
+          /properties must be object/
+        );
+      });
     });
 
-    test('object 类型的 properties 不能是数组', () => {
-      assert.throws(
-        () => validateExpressSchema({
-          type: 'object',
-          properties: [],
-        } as AnySchema),
-        /Invalid schema/,
-      );
+    test('对象类型可以包含 resolve 函数', () => {
+      assertValidSchema({
+        ...createObjectSchema({ name: { type: 'string' } }),
+        resolve: (value: unknown) => value,
+      });
     });
   });
 
   describe('数组类型验证', () => {
-    test('应该通过 properties 为对象的 array 类型验证', () => {
-      assert.doesNotThrow(() => {
-        validateExpressSchema({
-          type: 'array',
-          properties: {
-            items: { type: 'string' },
-          },
-        });
+    describe('对象形式的 properties', () => {
+      test('应该通过有效的对象 properties', () => {
+        assertValidSchema(createArraySchema({
+          items: { type: 'string' },
+        }));
+      });
+
+      test('应该通过空对象 properties', () => {
+        assertValidSchema(createArraySchema({}));
       });
     });
 
-    test('应该通过 properties 为元组的 array 类型验证', () => {
-      assert.doesNotThrow(() => {
-        validateExpressSchema({
-          type: 'array',
-          properties: ['items', { type: 'string' }],
+    describe('元组形式的 properties', () => {
+      test('应该通过有效的元组 properties', () => {
+        assertValidSchema(createArraySchema(['items', { type: 'string' }]));
+      });
+
+      test('元组长度必须为 2', () => {
+        const invalidTuples = [
+          [],
+          ['items'],
+          ['items', { type: 'string' }, 'extra'],
+        ];
+
+        invalidTuples.forEach(tuple => {
+          assertInvalidSchema(
+            createArraySchema(tuple),
+            /properties array must have exactly 2 elements/
+          );
         });
       });
-    });
 
-    test('应该通过空 properties 对象的 array 类型验证', () => {
-      assert.doesNotThrow(() => {
-        validateExpressSchema({
-          type: 'array',
-          properties: {},
+      test('元组第一项必须是 string', () => {
+        assertInvalidSchema(
+          createArraySchema([123, { type: 'string' }]),
+          /properties\[0\] must be string/
+        );
+      });
+
+      test('元组第二项必须是 object', () => {
+        const invalidSecondItems = ['invalid', [], 123, null];
+
+        invalidSecondItems.forEach(item => {
+          assertInvalidSchema(
+            createArraySchema(['items', item]),
+            /properties\[1\] must be object/
+          );
         });
       });
     });
 
     test('array 类型缺少 properties 应该抛出错误', () => {
-      assert.throws(
-        () => validateExpressSchema({ type: 'array' } as AnySchema),
-        /Invalid schema/,
+      assertInvalidSchema(
+        { type: 'array' },
+        /must have required property "properties"/
       );
     });
 
-    describe('元组 properties 验证', () => {
-      test('元组长度必须为 2', () => {
-        assert.throws(
-          () => validateExpressSchema({
-            type: 'array',
-            properties: ['items'],
-          } as AnySchema),
-          /Invalid schema/,
-        );
-
-        assert.throws(
-          () => validateExpressSchema({
-            type: 'array',
-            properties: ['items', { type: 'string' }, 'extra'],
-          } as AnySchema),
-          /Invalid schema/,
-        );
-      });
-
-      test('元组第一项必须是 string', () => {
-        assert.throws(
-          () => validateExpressSchema({
-            type: 'array',
-            properties: [123, { type: 'string' }],
-          } as AnySchema),
-          /Invalid schema/,
-        );
-      });
-
-      test('元组第二项必须是 object', () => {
-        assert.throws(
-          () => validateExpressSchema({
-            type: 'array',
-            properties: ['items', 'invalid'],
-          } as AnySchema),
-          /Invalid schema/,
-        );
-
-        assert.throws(
-          () => validateExpressSchema({
-            type: 'array',
-            properties: ['items', []],
-          } as AnySchema),
-          /Invalid schema/,
-        );
+    test('数组类型可以包含 resolve 函数', () => {
+      assertValidSchema({
+        ...createArraySchema(['items', { type: 'number' }]),
+        resolve: (value: unknown) => value,
       });
     });
   });
 
-  describe('无效输入验证', () => {
-    const invalidInputs = [
-      { input: [], description: '空数组' },
-      { input: 'number', description: '字符串' },
-      { input: 'integer', description: '字符串 integer' },
-      { input: {}, description: '空对象' },
-      { input: { type: 'xxx' }, description: '无效的 type' },
-      { input: { type: 'json' }, description: '不支持的 type: json' },
-      { input: { type: null }, description: 'type 为 null' },
-      { input: { type: undefined }, description: 'type 为 undefined' },
-    ];
+  describe('根节点验证', () => {
+    test('应该拒绝非对象类型', () => {
+      const invalidInputs = [null, undefined, 'string', 123, true, [], () => {}];
 
-    invalidInputs.forEach(({ input, description }) => {
-      test(`${description}应该抛出错误`, () => {
-        assert.throws(
-          () => validateExpressSchema(input as AnySchema),
-          /Invalid schema/,
-        );
+      invalidInputs.forEach(input => {
+        assertInvalidSchema(input, /root: must be object/);
       });
+    });
+
+    test('应该拒绝空对象', () => {
+      assertInvalidSchema({}, /missing required property "type"/);
+    });
+
+    test('应该拒绝缺少 type 属性', () => {
+      assertInvalidSchema(
+        { properties: {} },
+        /missing required property "type"/
+      );
     });
   });
 
-  describe('可选的 resolve 函数', () => {
-    const typesWithResolve = [
-      { type: 'string', properties: undefined },
-      { type: 'object', properties: { name: { type: 'string' } } },
-      { type: 'array', properties: ['items', { type: 'number' }] },
-    ];
+  describe('type 属性验证', () => {
+    test('应该拒绝无效的 type 值', () => {
+      const invalidTypes = [
+        { value: 'xxx', desc: '未知类型' },
+        { value: 'json', desc: '不支持的类型' },
+        { value: null, desc: 'null' },
+        { value: undefined, desc: 'undefined' },
+      ];
 
-    typesWithResolve.forEach(schema => {
-      test(`${schema.type} 类型应该允许包含 resolve 函数`, () => {
-        assert.doesNotThrow(() => {
-          validateExpressSchema({
-            ...schema,
-            resolve: (value: unknown) => value,
-          } as AnySchema);
-        });
+      invalidTypes.forEach(({ value, desc }) => {
+        assertInvalidSchema(
+          { type: value },
+          /type must be one of|missing required property "type"/
+        );
       });
+    });
+
+    test('应该拒绝 type 为字符串的直接传入', () => {
+      assertInvalidSchema('number', /root: must be object/);
+      assertInvalidSchema('integer', /root: must be object/);
     });
   });
 
   describe('复杂嵌套场景', () => {
     test('应该通过嵌套对象验证', () => {
-      assert.doesNotThrow(() => {
-        validateExpressSchema({
-          type: 'object',
-          properties: {
-            user: {
-              type: 'object',
-              properties: {
-                name: { type: 'string' },
-                age: { type: 'number' },
-                address: {
-                  type: 'object',
-                  properties: {
-                    city: { type: 'string' },
-                    zipCode: { type: 'integer' },
-                  },
-                },
-              },
-            },
-          },
-        });
-      });
+      assertValidSchema(createObjectSchema({
+        user: createObjectSchema({
+          name: { type: 'string' },
+          age: { type: 'number' },
+          address: createObjectSchema({
+            city: { type: 'string' },
+            zipCode: { type: 'integer' },
+          }),
+        }),
+      }));
     });
 
     test('应该通过嵌套数组验证', () => {
-      assert.doesNotThrow(() => {
-        validateExpressSchema({
-          type: 'array',
-          properties: {
-            items: {
-              type: 'array',
-              properties: ['item', { type: 'string' }],
-            },
-          },
-        });
-      });
+      assertValidSchema(createArraySchema({
+        items: createArraySchema(['item', { type: 'string' }]),
+      }));
     });
 
     test('应该通过混合嵌套验证', () => {
-      assert.doesNotThrow(() => {
-        validateExpressSchema({
-          type: 'object',
-          properties: {
-            users: {
-              type: 'array',
-              properties: {
-                user: {
-                  type: 'object',
-                  properties: {
-                    name: { type: 'string' },
-                    tags: {
-                      type: 'array',
-                      properties: ['tag', { type: 'string' }],
-                    },
-                  },
-                },
-              },
-            },
-          },
-        });
+      assertValidSchema(createObjectSchema({
+        users: createArraySchema({
+          user: createObjectSchema({
+            name: { type: 'string' },
+            tags: createArraySchema(['tag', { type: 'string' }]),
+          }),
+        }),
+      }));
+    });
+  });
+
+  describe('边界情况', () => {
+    test('应该接受包含额外属性的 schema', () => {
+      assertValidSchema({
+        type: 'string',
+        extraProp: 'should be ignored',
+        anotherProp: 123,
+      });
+    });
+
+    test('应该处理所有类型的组合', () => {
+      const allTypes: ExpressSchema[] = [
+        { type: 'string' },
+        { type: 'number' },
+        { type: 'boolean' },
+        { type: 'integer' },
+        createObjectSchema({}),
+        createArraySchema({}),
+      ];
+
+      allTypes.forEach(schema => {
+        assertValidSchema(schema);
       });
     });
   });
 
   describe('错误消息验证', () => {
-    test('错误消息应该包含无效的 schema 信息', () => {
+    test('错误应该是 DataVError 类型并包含正确的错误码', () => {
       try {
-        validateExpressSchema({ type: 'invalid' } as AnySchema);
+        validateExpressSchema({ type: 'invalid' });
         assert.fail('应该抛出错误');
       } catch (error: unknown) {
-        assert.ok(isDataVError(error), 'Should be a DataVError');
+        assert.ok(isDataVError(error));
         assert.strictEqual((error as { code: string }).code, ERROR_CODES.INVALID_SCHEMA);
         assert.match((error as Error).message, /\[INVALID_SCHEMA\]/);
       }
@@ -287,13 +281,62 @@ describe('validateExpressSchema', () => {
 
     test('错误消息应该包含验证错误详情', () => {
       try {
-        validateExpressSchema({ type: 'object' } as AnySchema);
+        validateExpressSchema({ type: 'object' });
         assert.fail('应该抛出错误');
       } catch (error: unknown) {
-        assert.ok(isDataVError(error), 'Should be a DataVError');
+        assert.ok(isDataVError(error));
         assert.match((error as Error).message, /\[INVALID_SCHEMA\]/);
         assert.match((error as Error).message, /properties/);
       }
     });
+  });
+});
+
+describe('tryValidateExpressSchema', () => {
+  test('应该返回成功结果对于有效 schema', () => {
+    const validSchemas: ExpressSchema[] = [
+      { type: 'string' },
+      createObjectSchema({ name: { type: 'string' } }),
+      createArraySchema(['item', { type: 'number' }]),
+    ];
+
+    validSchemas.forEach(schema => {
+      const result = tryValidateExpressSchema(schema);
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.errors.length, 0);
+    });
+  });
+
+  test('应该返回错误结果对于无效 schema', () => {
+    const invalidSchemas = [
+      { schema: { type: 'object' }, pattern: /must have required property "properties"/ },
+      { schema: { type: 'array' }, pattern: /must have required property "properties"/ },
+      { schema: null, pattern: /root: must be object/ },
+    ];
+
+    invalidSchemas.forEach(({ schema, pattern }) => {
+      const result = tryValidateExpressSchema(schema);
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.errors.length > 0);
+      assert.match(result.errors[0], pattern);
+    });
+  });
+
+  test('应该返回多个错误对于元组验证', () => {
+    const result = tryValidateExpressSchema({
+      type: 'array',
+      properties: [123, 'not-object'],
+    });
+
+    assert.strictEqual(result.valid, false);
+    assert.ok(result.errors.length >= 2);
+  });
+
+  test('应该区分有效和无效的 schema', () => {
+    const validResult = tryValidateExpressSchema({ type: 'string' });
+    const invalidResult = tryValidateExpressSchema({});
+
+    assert.strictEqual(validResult.valid, true);
+    assert.strictEqual(invalidResult.valid, false);
   });
 });

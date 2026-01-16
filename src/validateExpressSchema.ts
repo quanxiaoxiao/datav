@@ -1,22 +1,24 @@
 import { DataVError } from './errors.js';
 import { isPlainObject } from './utils.js';
 
+export type BasicType = 'string' | 'number' | 'boolean' | 'integer';
+export type ComplexType = 'object' | 'array';
+export type SchemaType = BasicType | ComplexType;
+
 export interface ExpressSchema {
-  type: 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
+  type: SchemaType;
   properties?: Record<string, unknown> | [string, object];
   resolve?: (value: unknown, root: unknown) => unknown;
 }
-
-const BASIC_TYPES = ['string', 'number', 'boolean', 'integer'] as const;
-const VALID_TYPES = [...BASIC_TYPES, 'object', 'array'] as const;
-
-type BasicType = typeof BASIC_TYPES[number];
-type ValidType = typeof VALID_TYPES[number];
 
 interface ValidationResult {
   valid: boolean;
   errors: string[];
 }
+
+const BASIC_TYPES: readonly BasicType[] = ['string', 'number', 'boolean', 'integer'];
+const COMPLEX_TYPES: readonly ComplexType[] = ['object', 'array'];
+const VALID_TYPES: readonly SchemaType[] = [...BASIC_TYPES, ...COMPLEX_TYPES];
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return isPlainObject(value);
@@ -31,118 +33,128 @@ const isTupleProperties = (value: unknown): value is [string, object] => {
   );
 };
 
+const isBasicType = (type: unknown): type is BasicType => {
+  return BASIC_TYPES.includes(type as BasicType);
+};
+
+const createResult = (errors: string[]): ValidationResult => ({
+  valid: errors.length === 0,
+  errors,
+});
+
 const validateBasicType = (schema: ExpressSchema): ValidationResult => {
   const errors: string[] = [];
 
   if (!schema.type) {
     errors.push('root: missing required property "type"');
-  } else if (!BASIC_TYPES.includes(schema.type as BasicType)) {
+  } else if (!isBasicType(schema.type)) {
     errors.push(`root: type must be one of [${BASIC_TYPES.join(', ')}]`);
   }
 
-  return { valid: errors.length === 0, errors };
+  return createResult(errors);
 };
 
 const validateObjectType = (schema: ExpressSchema): ValidationResult => {
-  const errors: string[] = [];
+  const { properties } = schema;
 
-  if (!isRecord(schema.properties)) {
-    if (schema.properties === undefined) {
-      errors.push('root: must have required property "properties"');
-    } else if (Array.isArray(schema.properties)) {
-      errors.push('root: properties must be object, not array');
-    } else {
-      errors.push('root: properties must be object');
-    }
+  if (properties === undefined) {
+    return createResult(['root: must have required property "properties"']);
   }
 
-  return { valid: errors.length === 0, errors };
+  if (Array.isArray(properties)) {
+    return createResult(['root: properties must be object, not array']);
+  }
+
+  if (!isRecord(properties)) {
+    return createResult(['root: properties must be object']);
+  }
+
+  return createResult([]);
 };
 
 const validateArrayType = (schema: ExpressSchema): ValidationResult => {
+  const { properties } = schema;
   const errors: string[] = [];
 
-  if (schema.properties === undefined) {
+  if (properties === undefined) {
     errors.push('root: must have required property "properties"');
-  } else if (Array.isArray(schema.properties)) {
-    const tupleCheck = isTupleProperties(schema.properties);
-    if (!tupleCheck) {
-      const len = schema.properties.length;
+    return createResult(errors);
+  }
+
+  if (Array.isArray(properties)) {
+    const propsArray = properties as unknown[];
+    if (!isTupleProperties(propsArray)) {
+      const len = propsArray.length;
       if (len !== 2) {
         errors.push(
           `root: properties array must have exactly 2 elements, got ${len}`,
         );
       } else {
-        const [first, second] = schema.properties;
-        if (typeof first !== 'string') {
-          errors.push(
-            `root: properties[0] must be string, got ${typeof first}`,
-          );
-        } else if (!isPlainObject(second)) {
-          errors.push(
-            `root: properties[1] must be object, got ${typeof second}`,
-          );
+        const tuple = propsArray as [unknown, unknown];
+        if (typeof tuple[0] !== 'string') {
+          errors.push(`root: properties[0] must be string, got ${typeof tuple[0]}`);
+        }
+        if (!isPlainObject(tuple[1])) {
+          errors.push(`root: properties[1] must be object, got ${typeof tuple[1]}`);
         }
       }
     }
-  } else if (!isRecord(schema.properties)) {
+  } else if (!isRecord(properties)) {
     errors.push('root: properties must be object or array');
   }
 
-  return { valid: errors.length === 0, errors };
+  return createResult(errors);
 };
 
 const validateSchemaType = (schema: ExpressSchema): ValidationResult => {
-  if (!schema.type) {
-    return {
-      valid: false,
-      errors: ['root: missing required property "type"'],
-    };
+  const { type } = schema;
+
+  if (!type) {
+    return createResult(['root: missing required property "type"']);
   }
 
-  if (!VALID_TYPES.includes(schema.type as ValidType)) {
-    return {
-      valid: false,
-      errors: [
-        `root: type must be one of [${VALID_TYPES.join(', ')}], got "${schema.type}"`,
-      ],
-    };
+  if (!VALID_TYPES.includes(type)) {
+    return createResult([
+      `root: type must be one of [${VALID_TYPES.join(', ')}], got "${type}"`,
+    ]);
   }
 
-  switch (schema.type) {
-  case 'object':
-    return validateObjectType(schema);
-  case 'array':
-    return validateArrayType(schema);
-  default:
-    return validateBasicType(schema);
-  }
+  const validators: Record<SchemaType, (s: ExpressSchema) => ValidationResult> = {
+    object: validateObjectType,
+    array: validateArrayType,
+    string: validateBasicType,
+    number: validateBasicType,
+    boolean: validateBasicType,
+    integer: validateBasicType,
+  };
+
+  return validators[type](schema);
 };
 
 const validateRootIsObject = (schema: unknown): ValidationResult => {
   if (!isPlainObject(schema) || Array.isArray(schema)) {
-    return {
-      valid: false,
-      errors: ['root: must be object'],
-    };
+    return createResult(['root: must be object']);
   }
-  return { valid: true, errors: [] };
+  return createResult([]);
 };
 
-export function validateExpressSchema(schema: ExpressSchema): void {
+export function validateExpressSchema(schema: unknown): asserts schema is ExpressSchema {
   const rootResult = validateRootIsObject(schema);
   if (!rootResult.valid) {
-    throw DataVError.invalidSchema(
-      schema,
-      rootResult.errors.join('; '),
-    );
+    throw DataVError.invalidSchema(schema, rootResult.errors.join('; '));
   }
 
-  const typeResult = validateSchemaType(schema);
+  const typeResult = validateSchemaType(schema as ExpressSchema);
   if (!typeResult.valid) {
-    throw DataVError.invalidSchema(
-      schema,
-      typeResult.errors.join('; '),
-    );
+    throw DataVError.invalidSchema(schema, typeResult.errors.join('; '));
   }
+}
+
+export function tryValidateExpressSchema(schema: unknown): ValidationResult {
+  const rootResult = validateRootIsObject(schema);
+  if (!rootResult.valid) {
+    return rootResult;
+  }
+
+  return validateSchemaType(schema as ExpressSchema);
 }
