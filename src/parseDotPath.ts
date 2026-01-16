@@ -10,7 +10,7 @@ export function parseDotPath(input: string): string[] {
 
   let i = 0;
   let escaping = false;
-  let isStart = true; // whether we are before the first real segment
+  let isStart = true;
 
   const throwInvalid = (): never => {
     throw DataVError.invalidPathSegment(input);
@@ -20,7 +20,6 @@ export function parseDotPath(input: string): string[] {
     const ch = input[i];
 
     if (escaping) {
-      // '\' escapes ANY character
       buffer += ch;
       escaping = false;
       i++;
@@ -35,9 +34,7 @@ export function parseDotPath(input: string): string[] {
 
     if (ch === '.') {
       if (buffer.length === 0) {
-        // empty segment
         if (isStart) {
-          // allow exactly one leading empty segment
           isStart = false;
           i++;
           continue;
@@ -57,14 +54,11 @@ export function parseDotPath(input: string): string[] {
     i++;
   }
 
-  // dangling escape
   if (escaping) {
     throwInvalid();
   }
 
-  // handle last segment
   if (buffer.length === 0) {
-    // ending with '.'
     throwInvalid();
   }
 
