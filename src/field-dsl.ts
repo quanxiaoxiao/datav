@@ -54,28 +54,30 @@ export function toObject<T extends Record<string, Field>>(
 ): Field<{ [K in keyof T]: Infer<T[K]> }> {
   const keys = Object.keys(fields);
 
-  return createField(path, (val) => {
+  const transform = (val: unknown): { [K in keyof T]: Infer<T[K]> } => {
     const source = toObjectValue(val);
-    const result = {} as unknown;
+    const result: Record<string, unknown> = {};
 
-    // 使用预先提取的 keys 减少遍历开销
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
       result[key] = fields[key].run(source);
     }
-    return result;
-  });
+    return result as { [K in keyof T]: Infer<T[K]> };
+  };
+
+  return createField(path, transform);
 }
 
 export function toArray<T extends Field>(
   path: string | undefined,
   itemField: T,
 ): Field<Array<Infer<T>>> {
-  return createField(path, (val) => {
+  const transform = (val: unknown): Array<Infer<T>> => {
     const arr = toArrayValue(val);
-    // 显式调用以确保性能和上下文安全
-    return arr.map((i) => itemField.run(i));
-  });
+    return arr.map((i) => itemField.run(i)) as Array<Infer<T>>;
+  };
+
+  return createField(path, transform);
 }
 
 /**
