@@ -1,6 +1,4 @@
-import {
-  DataVError,
-} from './errors.js';
+import { DataVError } from './errors.js';
 import { isPlainObject } from './utils.js';
 
 const DATA_TYPE_NUMBER = 'number';
@@ -22,93 +20,6 @@ export type DataType =
 
 type ValueTransformer = (value: unknown) => unknown;
 
-const typeTransformers: Record<DataType, ValueTransformer> = {
-  [DATA_TYPE_STRING]: (value) => {
-    if (typeof value === 'string') {
-      return value;
-    }
-    const strVal = value as { toString?: () => string };
-    return strVal.toString ? strVal.toString() : JSON.stringify(value);
-  },
-
-  [DATA_TYPE_INTEGER]: (value) => {
-    if (value === '' || value == null) {
-      return null;
-    }
-
-    const valueType = typeof value;
-    if (valueType !== 'number' && valueType !== 'string') {
-      return null;
-    }
-
-    const number = Number(value);
-    if (Number.isNaN(number)) {
-      return null;
-    }
-
-    if (String(number) !== String(value)) {
-      return null;
-    }
-
-    return parseInt(number.toString(), 10);
-  },
-
-  [DATA_TYPE_NUMBER]: (value) => {
-    if (value === '' || value == null) {
-      return null;
-    }
-
-    const number = Number(value);
-    if (Number.isNaN(number)) {
-      return null;
-    }
-
-    if (String(number) !== String(value)) {
-      return null;
-    }
-
-    return number;
-  },
-
-  [DATA_TYPE_BOOLEAN]: (value) => {
-    if (value !== 'false' && value !== 'true') {
-      return null;
-    }
-    return value === 'true';
-  },
-
-  [DATA_TYPE_JSON]: (value) => {
-    try {
-      return JSON.parse(value as string);
-    } catch {
-      return null;
-    }
-  },
-
-  [DATA_TYPE_OBJECT]: (value) => {
-    try {
-      const parsed = JSON.parse(value as string);
-
-      if (Array.isArray(parsed) || typeof parsed !== 'object') {
-        return null;
-      }
-
-      return parsed;
-    } catch {
-      return null;
-    }
-  },
-
-  [DATA_TYPE_ARRAY]: (value) => {
-    try {
-      const parsed = JSON.parse(value as string);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  },
-};
-
 const typeNameMap: Record<DataType, string> = {
   [DATA_TYPE_NUMBER]: 'number',
   [DATA_TYPE_STRING]: 'string',
@@ -119,12 +30,95 @@ const typeNameMap: Record<DataType, string> = {
   [DATA_TYPE_OBJECT]: 'object',
 };
 
+const isEmpty = (value: unknown): boolean => value === '' || value == null;
+
+const toSafeNumber = (value: unknown, isInteger: boolean): number | null => {
+  if (isEmpty(value)) {
+    return null;
+  }
+
+  const valueType = typeof value;
+  if (valueType !== 'number' && valueType !== 'string') {
+    return null;
+  }
+
+  const number = Number(value);
+  if (Number.isNaN(number) || !Number.isFinite(number)) {
+    return null;
+  }
+
+  if (String(number) !== String(value)) {
+    return null;
+  }
+
+  if (isInteger) {
+    return parseInt(number.toString(), 10);
+  }
+
+  return number;
+};
+
+const safeJsonParse = (value: unknown): unknown => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const typeTransformers: Record<DataType, ValueTransformer> = {
+  [DATA_TYPE_STRING]: (value) => {
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (value == null) {
+      return null;
+    }
+    if (typeof (value as unknown).toString === 'function') {
+      return (value as unknown).toString();
+    }
+    return JSON.stringify(value);
+  },
+
+  [DATA_TYPE_INTEGER]: (value) => toSafeNumber(value, true),
+
+  [DATA_TYPE_NUMBER]: (value) => toSafeNumber(value, false),
+
+  [DATA_TYPE_BOOLEAN]: (value) => {
+    if (value === 'false' || value === false) {
+      return false;
+    }
+    if (value === 'true' || value === true) {
+      return true;
+    }
+    return null;
+  },
+
+  [DATA_TYPE_JSON]: (value) => safeJsonParse(value),
+
+  [DATA_TYPE_OBJECT]: (value) => {
+    const parsed = safeJsonParse(value);
+    if (parsed != null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed;
+    }
+    return null;
+  },
+
+  [DATA_TYPE_ARRAY]: (value) => {
+    const parsed = safeJsonParse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  },
+};
+
 export function parseValueByType(value: unknown, type: DataType): unknown {
   if (type == null) {
     throw DataVError.emptyDataType();
   }
 
-  if (!Object.hasOwnProperty.call(typeTransformers, type)) {
+  if (!Object.hasOwn(typeTransformers, type)) {
     throw DataVError.invalidDataType(type);
   }
 
@@ -164,3 +158,24 @@ export {
   DATA_TYPE_OBJECT,
   DATA_TYPE_STRING,
 };
+
+export const toString = (v: unknown): string | null =>
+  parseValueByType(v, DATA_TYPE_STRING) as string | null;
+
+export const toNumber = (v: unknown): number | null =>
+  parseValueByType(v, DATA_TYPE_NUMBER) as number | null;
+
+export const toInteger = (v: unknown): number | null =>
+  parseValueByType(v, DATA_TYPE_INTEGER) as number | null;
+
+export const toBoolean = (v: unknown): boolean | null =>
+  parseValueByType(v, DATA_TYPE_BOOLEAN) as boolean | null;
+
+export const toArray = (v: unknown): unknown[] =>
+  parseValueByType(v, DATA_TYPE_ARRAY) as unknown[];
+
+export const toObject = (v: unknown): Record<string, unknown> | null =>
+  parseValueByType(v, DATA_TYPE_OBJECT) as Record<string, unknown> | null;
+
+export const toJson = (v: unknown): unknown =>
+  parseValueByType(v, DATA_TYPE_JSON);

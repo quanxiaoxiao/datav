@@ -209,8 +209,8 @@ describe('parseValueByType', () => {
       });
 
       it('应该处理 Infinity', () => {
-        assert.strictEqual(parseValueByType('Infinity', DATA_TYPE_NUMBER), Infinity);
-        assert.strictEqual(parseValueByType('-Infinity', DATA_TYPE_NUMBER), -Infinity);
+        assert.strictEqual(parseValueByType('Infinity', DATA_TYPE_NUMBER), null);
+        assert.strictEqual(parseValueByType('-Infinity', DATA_TYPE_NUMBER), null);
       });
     });
   });
@@ -359,8 +359,8 @@ describe('parseValueByType', () => {
 
     it('应该处理特殊字符串', () => {
       assert.strictEqual(parseValueByType('NaN', DATA_TYPE_NUMBER), null);
-      assert.strictEqual(parseValueByType('Infinity', DATA_TYPE_NUMBER), Infinity);
-      assert.strictEqual(parseValueByType('-Infinity', DATA_TYPE_NUMBER), -Infinity);
+      assert.strictEqual(parseValueByType('Infinity', DATA_TYPE_NUMBER), null);
+      assert.strictEqual(parseValueByType('-Infinity', DATA_TYPE_NUMBER), null);
     });
 
     it('应该处理科学计数法数字', () => {
