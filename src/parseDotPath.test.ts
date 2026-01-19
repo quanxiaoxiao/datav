@@ -209,3 +209,31 @@ describe('parseDotPath', () => {
     });
   });
 });
+
+describe('parseDotPath', () => {
+  it('应该解析简单路径', () => {
+    assert.deepStrictEqual(parseDotPath('user.name'), ['user', 'name']);
+    assert.deepStrictEqual(parseDotPath('a.b.c'), ['a', 'b', 'c']);
+  });
+
+  it('应该处理前导点', () => {
+    assert.deepStrictEqual(parseDotPath('.user.name'), ['user', 'name']);
+  });
+
+  it('应该处理空字符串', () => {
+    assert.deepStrictEqual(parseDotPath(''), []);
+  });
+
+  it('应该处理单个段', () => {
+    assert.deepStrictEqual(parseDotPath('name'), ['name']);
+  });
+
+  it('应该处理转义点号', () => {
+    assert.deepStrictEqual(parseDotPath('user\\.name'), ['user.name']);
+    assert.deepStrictEqual(parseDotPath('a\\.b.c'), ['a.b', 'c']);
+  });
+
+  it('应该处理前导点后无内容', () => {
+    assert.deepStrictEqual(parseDotPath('.'), []);
+  });
+});

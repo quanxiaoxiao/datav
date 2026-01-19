@@ -129,14 +129,14 @@ describe('parseValueByType', () => {
       ], (input) => parseValueByType(input, DATA_TYPE_INTEGER));
     });
 
-    describe('浮点数取整', () => {
+    describe('浮点数应该为 Null', () => {
       runTestCases([
-        { input: 123.7, expected: 123 },
-        { input: '99.9', expected: 99 },
-        { input: -5.5, expected: -5 },
-        { input: 3.1, expected: 3 },
-        { input: '1.1', expected: 1 },
-        { input: '-3.1', expected: -3 },
+        { input: 123.7, expected: null },
+        { input: '99.9', expected: null },
+        { input: -5.5, expected: null },
+        { input: 3.1, expected: null },
+        { input: '1.1', expected: null },
+        { input: '-3.1', expected: null },
       ], (input) => parseValueByType(input, DATA_TYPE_INTEGER));
     });
 
@@ -403,13 +403,13 @@ describe('toInteger', () => {
     ], toInteger);
   });
 
-  describe('浮点数取整', () => {
+  describe('浮点数应该为 Null', () => {
     runTestCases([
-      { input: 123.7, expected: 123 },
-      { input: -456.9, expected: -456 },
-      { input: 3.14, expected: 3 },
-      { input: '123.45', expected: 123 },
-      { input: '3.14', expected: 3 },
+      { input: 123.7, expected: null },
+      { input: -456.9, expected: null },
+      { input: 3.14, expected: null },
+      { input: '123.45', expected: null },
+      { input: '3.14', expected: null },
     ], toInteger);
   });
 

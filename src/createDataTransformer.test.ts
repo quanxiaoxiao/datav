@@ -33,8 +33,8 @@ test('基础类型转换', async (t) => {
 
   await t.test('integer 类型转换', () => {
     const schema = { type: 'integer' };
-    expectTransform(schema, '1.1', 1);
-    expectTransform(schema, '33.3', 33);
+    expectTransform(schema, '1', 1);
+    expectTransform(schema, '33', 33);
   });
 
   await t.test('boolean 类型转换', () => {
@@ -56,13 +56,13 @@ test('路径访问 (pathname)', async (t) => {
   await t.test('基本路径访问', () => {
     expectTransform(
       ['age', { type: 'integer' }],
-      { age: '33.3' },
+      { age: '33' },
       33,
     );
 
     expectTransform(
       ['sub.age', { type: 'integer' }],
-      { name: 'quan', sub: { age: 33.3 } },
+      { name: 'quan', sub: { age: 33 } },
       33,
     );
   });
@@ -70,7 +70,7 @@ test('路径访问 (pathname)', async (t) => {
   await t.test('嵌套对象路径', () => {
     expectTransform(
       ['obj.age', { type: 'integer' }],
-      { obj: { age: '33.33' } },
+      { obj: { age: '33' } },
       33,
     );
   });
@@ -104,7 +104,7 @@ test('路径访问 (pathname)', async (t) => {
         properties: ['$age', { type: 'integer' }],
       },
       { name: 'aa', age: '44.4' },
-      [44],
+      [null],
     );
 
     expectTransform(
@@ -144,7 +144,7 @@ test('对象类型转换', async (t) => {
         },
       },
       { name: 'quan', age: '22.2', foo: 'bar' },
-      { name: 'quan', age: 22 },
+      { name: 'quan', age: null },
     );
   });
 
@@ -172,7 +172,7 @@ test('对象类型转换', async (t) => {
       {
         name: 'quan',
         age: 22.5,
-        obj: { name: 'xxx', age: 33 },
+        obj: { name: 'xxx', age: null },
       },
     );
   });
@@ -199,7 +199,7 @@ test('对象类型转换', async (t) => {
         age: '22.5',
         obj: { name: 'xxx', age: '33.3', big: 'foo' },
       },
-      { name: 'xxx', age: 33 },
+      { name: 'xxx', age: null },
     );
   });
 
@@ -213,7 +213,7 @@ test('对象类型转换', async (t) => {
         },
       },
       { name: 'quan', age: '22.5' },
-      { name: 'quan', ding: 22 },
+      { name: 'quan', ding: null },
     );
   });
 
@@ -244,7 +244,7 @@ test('对象类型转换', async (t) => {
         name: 'quan',
         age: 22.5,
         ddd: 'xxx',
-        sub: { name: 'xxx', age: 33, cqq: 'foo' },
+        sub: { name: 'xxx', age: null, cqq: 'foo' },
       },
     );
   });
@@ -308,8 +308,8 @@ test('对象类型转换', async (t) => {
         name: 'aaa',
         quan: {
           name: 'cccc',
-          age: 33,
-          jj: 66,
+          age: null,
+          jj: null,
           ding: 44.44,
         },
       },
@@ -325,7 +325,7 @@ test('数组类型转换', async (t) => {
         properties: ['.', { type: 'integer' }],
       },
       ['33.3', '22.8'],
-      [33, 22],
+      [null, null],
     );
 
     expectTransform(
@@ -334,7 +334,7 @@ test('数组类型转换', async (t) => {
         properties: ['.', { type: 'integer' }],
       },
       ['1.1', '3', '4'],
-      [1, 3, 4],
+      [null, 3, 4],
     );
   });
 
@@ -345,7 +345,7 @@ test('数组类型转换', async (t) => {
         properties: { age: { type: 'integer' } },
       },
       [{ age: '33.3' }],
-      [{ age: 33 }],
+      [{ age: null }],
     );
 
     expectTransform(
@@ -354,7 +354,7 @@ test('数组类型转换', async (t) => {
         properties: { age: { type: 'integer' } },
       },
       { age: '33.3' },
-      [{ age: 33 }],
+      [{ age: null }],
     );
   });
 
@@ -365,7 +365,7 @@ test('数组类型转换', async (t) => {
         properties: ['age', { type: 'integer' }],
       },
       [{ age: '1.1' }, { age: '3' }, { age: '4' }],
-      [1, 3, 4],
+      [null, 3, 4],
     );
   });
 
@@ -391,7 +391,7 @@ test('数组类型转换', async (t) => {
       },
       {
         name: 'aaa',
-        arr: [{ name: 'bbb', age: 99 }],
+        arr: [{ name: 'bbb', age: null }],
       },
     );
   });

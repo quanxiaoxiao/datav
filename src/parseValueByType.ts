@@ -66,7 +66,11 @@ const toSafeNumber = (value: unknown, isInteger: boolean): number | null => {
     return null;
   }
 
-  return parseInt(number.toString(), 10);
+  const integer = parseInt(number.toString(), 10);
+  if (String(integer) !== String(value)) {
+    return null;
+  }
+  return integer;
 };
 
 const safeJsonParse = (value: unknown): unknown => {
