@@ -779,3 +779,126 @@ describe('Schema Transformer Tests', () => {
   });
 });
 
+
+test('transform: string / number / boolean / integer', () => {
+  const schema = {
+    path: '.',
+    type: 'object',
+    properties: {
+      name: { path: 'name', type: 'string' },
+      age: { path: 'age', type: 'integer' },
+      score: { path: 'score', type: 'number' },
+      active: { path: 'active', type: 'boolean' },
+    },
+  } as const;
+
+  const data = {
+    name: 123,
+    age: '18',
+    score: '99.5',
+    active: 'true',
+  };
+
+  const result = transform(schema, data);
+
+  assert.deepEqual(result, {
+    name: '123',
+    age: 18,
+    score: 99.5,
+    active: true,
+  });
+});
+
+test('transform: nested object', () => {
+  const schema = {
+    path: '.',
+    type: 'object',
+    properties: {
+      user: {
+        path: 'user',
+        type: 'object',
+        properties: {
+          id: { path: 'id', type: 'integer' },
+          name: { path: 'name', type: 'string' },
+        },
+      },
+    },
+  } as const;
+
+  const data = {
+    user: {
+      id: '42',
+      name: 'Alice',
+    },
+  };
+
+  const result = transform(schema, data);
+
+  assert.deepEqual(result, {
+    user: {
+      id: 42,
+      name: 'Alice',
+    },
+  });
+});
+
+test('transform: array items', () => {
+  const schema = {
+    path: 'items',
+    type: 'array',
+    items: {
+      path: '.',
+      type: 'integer',
+    },
+  } as const;
+
+  const data = {
+    items: ['1', 2, '3'],
+  };
+
+  const result = transform(schema, data);
+
+  assert.deepEqual(result, [1, 2, 3]);
+});
+
+test('transform: array of objects', () => {
+  const schema = {
+    path: 'users',
+    type: 'array',
+    items: {
+      path: '.',
+      type: 'object',
+      properties: {
+        id: { path: 'id', type: 'integer' },
+        name: { path: 'name', type: 'string' },
+      },
+    },
+  } as const;
+
+  const data = {
+    users: [
+      { id: '1', name: 'A' },
+      { id: '2', name: 'B' },
+    ],
+  };
+
+  const result = transform(schema, data);
+
+  assert.deepEqual(result, [
+    { id: 1, name: 'A' },
+    { id: 2, name: 'B' },
+  ]);
+});
+
+test('createTransform: throws on invalid schema', () => {
+  const schema = {
+    path: 'x',
+    type: 'object',
+  };
+
+  assert.throws(
+    () => createTransform(schema as any),
+    /Invalid schema/,
+  );
+});
+
