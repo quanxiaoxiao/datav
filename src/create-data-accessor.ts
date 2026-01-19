@@ -14,7 +14,7 @@ const getArrayElement = (array: unknown[], index: number): unknown => {
   return actualIndex >= 0 && actualIndex < len ? array[actualIndex] : null;
 };
 
-export function createArrayAccessor(index: string): (array: unknown[]) => unknown {
+export function createArrayAccessor(index: string): DataAccessor {
   const numericIndex = toInteger(index);
 
   if (numericIndex == null) {
@@ -41,7 +41,7 @@ const traversePath = (target: unknown, pathSegments: string[]): unknown => {
 
   const [currentKey, ...remainingPath] = pathSegments;
 
-  const accessor = Array.isArray(target)
+  const accessor: (target: unknown) => unknown = Array.isArray(target)
     ? createArrayAccessor(currentKey)
     : createObjectAccessor(currentKey);
 

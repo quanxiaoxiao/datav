@@ -49,7 +49,7 @@ const toSafeNumber = (value: unknown, isInteger: boolean): number | null => {
     return null;
   }
 
-  if (valueType === 'number' && !isSafeNumberValue(value)) {
+  if (valueType === 'number' && !isSafeNumberValue(value as number)) {
     return null;
   }
 
@@ -92,8 +92,8 @@ const typeTransformers: Record<DataType, ValueTransformer> = {
     if (value == null) {
       return null;
     }
-    if (typeof (value as unknown).toString === 'function') {
-      return (value as unknown).toString();
+    if (typeof value.toString === 'function') {
+      return value.toString();
     }
     return JSON.stringify(value);
   },
@@ -149,7 +149,7 @@ export function parseValueByType(value: unknown, type: DataType): unknown {
 
     if (valueType === typeNameMap[type]) {
       if (type === DATA_TYPE_NUMBER) {
-        return isSafeNumberValue(value) ? value : null;
+        return isSafeNumberValue(value as number) ? value : null;
       }
       if (type === DATA_TYPE_ARRAY) {
         return Array.isArray(value) ? value : [];
