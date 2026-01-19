@@ -38,6 +38,63 @@ function isSchemaType(value: unknown): value is SchemaType {
   return VALID_TYPES.includes(value as SchemaType);
 }
 
+type Transformer = (data: unknown) => unknown;
+
+function compileSchema(schema: SchemaExpress): Transformer {
+  const accessor = createDataAccessor(schema.path);
+
+  switch (schema.type) {
+  case 'string':
+    return (data) => toString(accessor(data));
+
+  case 'number':
+    return (data) => toNumber(accessor(data));
+
+  case 'integer':
+    return (data) => toInteger(accessor(data));
+
+  case 'boolean':
+    return (data) => toBoolean(accessor(data));
+
+  case 'array': {
+    const itemSchema = schema.items.path
+      ? schema.items
+      : { ...schema.items, path: '.' };
+
+    const itemTransform = compileSchema(itemSchema);
+
+    return (data) => {
+      const arr = toArray(accessor(data));
+      return arr.map(itemTransform);
+    };
+  }
+
+  case 'object': {
+    const compiledProps: Record<string, Transformer> = {};
+
+    for (const [key, childSchema] of Object.entries(schema.properties)) {
+      compiledProps[key] = compileSchema(childSchema);
+    }
+
+    return (data) => {
+      const obj = toObject(accessor(data));
+      const result: Record<string, unknown> = {};
+
+      for (const key in compiledProps) {
+        result[key] = compiledProps[key](obj);
+      }
+
+      return result;
+    };
+  }
+
+  default: {
+    const neverType: never = schema;
+    throw new Error(`Unhandled schema type: ${neverType}`);
+  }
+  }
+}
+
 export function validateExpressSchema(
   data: unknown,
   contextPath = 'root',
@@ -105,70 +162,23 @@ export function validateExpressSchema(
   };
 }
 
-function transformData(schema: SchemaExpress, data: unknown): unknown {
-  const accessor = createDataAccessor(schema.path);
-  const value = accessor(data);
-  const { type } = schema;
-
-  switch (type) {
-  case 'string':
-    return toString(value);
-
-  case 'number':
-    return toNumber(value);
-
-  case 'integer':
-    return toInteger(value);
-
-  case 'boolean':
-    return toBoolean(value);
-
-  case 'array': {
-    const arrayValue = toArray(value);
-    return arrayValue.map((item) =>
-      transformData(
-        schema.items.path ? schema.items : {
-          ...schema.items,
-          path: '.',
-        },
-        item,
-      ),
-    );
-  }
-
-  case 'object': {
-    const objectValue = toObject(value);
-    const result: Record<string, unknown> = {};
-
-    Object.entries(schema.properties).forEach(([key, childSchema]) => {
-      result[key] = transformData(childSchema, objectValue);
-    });
-
-    return result;
-  }
-
-  default: {
-    const exhaustiveCheck: never = type;
-    throw new Error(`Unhandled type: ${exhaustiveCheck}`);
-  }
-  }
-}
-
 export function createTransform(schema: SchemaExpress) {
-  const validationResult = validateExpressSchema(schema);
+  const { valid, errors } = validateExpressSchema(schema);
 
-  if (!validationResult.valid) {
-    throw new Error(
-      `Invalid schema:\n${validationResult.errors.join('\n')}`,
-    );
+  if (!valid) {
+    throw new Error(`Invalid schema:\n${errors.join('\n')}`);
   }
+
+  const transformer = compileSchema(schema);
 
   return (data: unknown): unknown => {
     try {
-      return transformData(schema, data);
+      return transformer(data);
     } catch (error) {
       throw new Error(
-        `Data transformation failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Data transformation failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   };
