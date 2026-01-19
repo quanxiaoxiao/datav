@@ -30,13 +30,21 @@ const VALID_TYPES: readonly SchemaType[] = [
   'array',
 ] as const;
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isSchemaType(value: unknown): value is SchemaType {
+  return VALID_TYPES.includes(value as SchemaType);
+}
+
 export function validateExpressSchema(
   data: unknown,
   contextPath = 'root',
 ): ValidationResult {
   const errors: string[] = [];
 
-  if (typeof data !== 'object' || data === null) {
+  if (!isObject(data)) {
     return {
       valid: false,
       errors: [`[${contextPath}]: Must be an object`],
@@ -49,7 +57,7 @@ export function validateExpressSchema(
     errors.push(`[${contextPath}]: Missing or invalid 'path' field`);
   }
 
-  if (!VALID_TYPES.includes(node.type as SchemaType)) {
+  if (!isSchemaType(data.type)) {
     errors.push(
       `[${contextPath}]: Invalid 'type' field, current value is "${node.type}"`,
     );
@@ -60,23 +68,24 @@ export function validateExpressSchema(
 
   switch (node.type) {
   case 'object':
-    if (typeof node.properties !== 'object' || node.properties === null) {
+    if (!isObject(data.properties)) {
       errors.push(
         `[${currentPath}]: Type 'object' must include a 'properties' object`,
       );
-    } else {
-      Object.entries(node.properties).forEach(([key, childSchema]) => {
-        const result = validateExpressSchema(
-          childSchema,
-          `${contextPath}.properties.${key}`,
-        );
-        errors.push(...result.errors);
-      });
+      break;
     }
+    for (const [key, child] of Object.entries(data.properties)) {
+      const result = validateExpressSchema(
+        child,
+        `${contextPath}.properties.${key}`,
+      );
+      errors.push(...result.errors);
+    }
+    break;
     break;
 
   case 'array':
-    if (typeof node.items !== 'object' || node.items === null) {
+    if (!isObject(data.items)) {
       errors.push(
         `[${currentPath}]: Type 'array' must include an 'items' object`,
       );
