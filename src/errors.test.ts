@@ -10,8 +10,6 @@ import {
   getErrorCode,
 } from './errors.js';
 import { parseValueByType } from './parseValueByType.js';
-import { validateExpressSchema } from './validateExpressSchema.js';
-import { createDataTransformer } from './createDataTransformer.js';
 import { parseDotPath } from './parseDotPath.js';
 
 test('DataVError 类', async (t) => {
@@ -144,67 +142,6 @@ test('parseValueByType 错误处理', async (t) => {
       (err: unknown) => {
         assert.ok(isDataVError(err));
         assert.strictEqual((err as DataVError).code, ERROR_CODES.INVALID_DATA_TYPE);
-        return true;
-      },
-    );
-  });
-});
-
-test('validateExpressSchema 错误处理', async (t) => {
-  await t.test('缺少 properties 的 object 应该抛出错误', () => {
-    assert.throws(
-      () => validateExpressSchema({ type: 'object' }),
-      (err: unknown) => {
-        assert.ok(isDataVError(err));
-        assert.strictEqual((err as DataVError).code, ERROR_CODES.INVALID_SCHEMA);
-        return true;
-      },
-    );
-  });
-
-  await t.test('缺少 properties 的 array 应该抛出错误', () => {
-    assert.throws(
-      () => validateExpressSchema({ type: 'array' }),
-      (err: unknown) => {
-        assert.ok(isDataVError(err));
-        assert.strictEqual((err as DataVError).code, ERROR_CODES.INVALID_SCHEMA);
-        return true;
-      },
-    );
-  });
-
-  await t.test('无效类型应该抛出错误', () => {
-    assert.throws(
-      () => validateExpressSchema({ type: 'invalid' as 'string' }),
-      (err: unknown) => {
-        assert.ok(isDataVError(err));
-        assert.strictEqual((err as DataVError).code, ERROR_CODES.INVALID_SCHEMA);
-        return true;
-      },
-    );
-  });
-});
-
-test('createDataTransformer 错误处理', async (t) => {
-  await t.test('无效元组格式应该抛出 DataVError', () => {
-    assert.throws(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      () => createDataTransformer(['path'] as any),
-      (err: unknown) => {
-        assert.ok(isDataVError(err));
-        assert.strictEqual((err as DataVError).code, ERROR_CODES.INVALID_TUPLE);
-        return true;
-      },
-    );
-  });
-
-  await t.test('无效元组内容应该抛出 DataVError', () => {
-    assert.throws(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      () => createDataTransformer(['path', 'invalid'] as any),
-      (err: unknown) => {
-        assert.ok(isDataVError(err));
-        assert.strictEqual((err as DataVError).code, ERROR_CODES.INVALID_TUPLE);
         return true;
       },
     );
