@@ -593,4 +593,138 @@ describe('transform', () => {
       assert.strictEqual(result, 'deep');
     });
   });
+
+  describe('Root path reference ($)', () => {
+    test('should use $ to access root data', () => {
+      const schema: SchemaExpress = {
+        path: '$.name',
+        type: 'string',
+      };
+
+      const result = transform(schema, {
+        name: 'John',
+        age: 30,
+      });
+
+      assert.strictEqual(result, 'John');
+    });
+
+    test('should use $ to access nested root data', () => {
+      const schema: SchemaExpress = {
+        path: '$.user.profile.name',
+        type: 'string',
+      };
+
+      const result = transform(schema, {
+        user: { profile: { name: 'Alice' } },
+        settings: { theme: 'dark' },
+      });
+
+      assert.strictEqual(result, 'Alice');
+    });
+
+    test('should use $ to access array element from root', () => {
+      const schema: SchemaExpress = {
+        path: '$.0',
+        type: 'string',
+      };
+
+      const result = transform(schema, ['first', 'second', 'third']);
+
+      assert.strictEqual(result, 'first');
+    });
+
+    test('should use $ in object properties to access root', () => {
+      const schema: SchemaExpress = {
+        path: 'result',
+        type: 'object',
+        properties: {
+          name: { path: '$.user.name', type: 'string' },
+          email: { path: '$.contact.email', type: 'string' },
+        },
+      };
+
+      const result = transform(schema, {
+        user: { name: 'Bob', id: 1 },
+        contact: { email: 'bob@example.com' },
+        other: { data: 'ignored' },
+      }) as any;
+
+      assert.strictEqual(result.name, 'Bob');
+      assert.strictEqual(result.email, 'bob@example.com');
+    });
+
+    test('should use $ in array items to access root', () => {
+      const schema: SchemaExpress = {
+        path: 'items',
+        type: 'array',
+        items: {
+          path: '.',
+          type: 'object',
+          properties: {
+            id: { path: '$.originalId', type: 'integer' },
+            displayName: { path: 'name', type: 'string' },
+          },
+        },
+      };
+
+      const result = transform(schema, {
+        originalId: '100',
+        items: [
+          { name: 'Item1' },
+          { name: 'Item2' },
+        ],
+      }) as any[];
+
+      assert.strictEqual(result[0].id, 100);
+      assert.strictEqual(result[0].displayName, 'Item1');
+      assert.strictEqual(result[1].id, 100);
+      assert.strictEqual(result[1].displayName, 'Item2');
+    });
+
+    test('should handle $ with missing path', () => {
+      const schema: SchemaExpress = {
+        path: '$.missing.field',
+        type: 'string',
+      };
+
+      const result = transform(schema, { other: 'value' });
+
+      assert.strictEqual(result, null);
+    });
+
+    test('should handle $ with null data', () => {
+      const schema: SchemaExpress = {
+        path: '$.user.name',
+        type: 'string',
+      };
+
+      const result = transform(schema, null);
+
+      assert.strictEqual(result, null);
+    });
+
+    test('should handle $ with complex nested structure', () => {
+      const schema: SchemaExpress = {
+        path: 'data',
+        type: 'object',
+        properties: {
+          title: { path: '$.title', type: 'string' },
+          authorName: { path: '$.author.name', type: 'string' },
+          firstTag: { path: '$.tags.0', type: 'string' },
+        },
+      };
+
+      const result = transform(schema, {
+        title: 'My Article',
+        author: { name: 'Charlie' },
+        tags: ['tech', 'coding', 'typescript'],
+        meta: { views: 1000 },
+      }) as any;
+
+      assert.strictEqual(result.title, 'My Article');
+      assert.strictEqual(result.authorName, 'Charlie');
+      assert.strictEqual(result.firstTag, 'tech');
+    });
+  });
 });

@@ -1,7 +1,9 @@
 import { parseDotPath } from './parse-dot-path.js';
 import { toInteger } from './parse-value-by-type.js';
 
-type DataAccessor = (data: unknown) => unknown;
+export type DataAccessor = (data: unknown) => unknown;
+
+const ROOT_SYMBOL = '$';
 
 const getArrayElement = (array: unknown[], index: number): unknown => {
   const len = array.length;
@@ -58,17 +60,29 @@ export function createPathAccessor(pathSegments: string[]): DataAccessor {
     return (data: unknown) => data;
   }
 
-  if (len === 1) {
-    const key = pathSegments[0];
+  const hasRootSymbol = pathSegments[0] === ROOT_SYMBOL;
+  const effectiveSegments = hasRootSymbol ? pathSegments.slice(1) : pathSegments;
+  const effectiveLen = effectiveSegments.length;
+
+  if (effectiveLen === 0) {
+    return (data: unknown) => data;
+  }
+
+  if (effectiveLen === 1) {
+    const key = effectiveSegments[0];
     return (data: unknown) => {
-      if (Array.isArray(data)) {
-        return createArrayAccessor(key)(data);
+      const target = hasRootSymbol ? data : (data as Record<string, unknown>);
+      if (Array.isArray(target)) {
+        return createArrayAccessor(key)(target);
       }
-      return createObjectAccessor(key)(data as Record<string, unknown>);
+      return createObjectAccessor(key)(target as Record<string, unknown>);
     };
   }
 
-  return (data: unknown) => traversePath(data, pathSegments);
+  return (data: unknown) => {
+    const target = hasRootSymbol ? data : data;
+    return traversePath(target, effectiveSegments);
+  };
 }
 
 export function createDataAccessor(pathname: string): DataAccessor {
@@ -78,3 +92,5 @@ export function createDataAccessor(pathname: string): DataAccessor {
   const parsedPath = parseDotPath(pathname);
   return createPathAccessor(parsedPath);
 }
+
+export { ROOT_SYMBOL };

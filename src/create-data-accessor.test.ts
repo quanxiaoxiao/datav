@@ -116,6 +116,71 @@ describe('createDataAccessor', () => {
       assert.strictEqual(accessor({ value: 3 }), 3);
     });
   });
+
+  describe('根路径引用 ($)', () => {
+    it('应该解析单个 $ 并返回原始数据', () => {
+      const accessor = createDataAccessor('$');
+      const data = { name: 'John', age: 30 };
+      assert.deepStrictEqual(accessor(data), data);
+    });
+
+    it('应该使用 $. 访问根数据中的嵌套属性', () => {
+      const accessor = createDataAccessor('$.user.name');
+      const data = {
+        user: { name: 'Alice', age: 25 },
+        settings: { theme: 'dark' }
+      };
+      assert.strictEqual(accessor(data), 'Alice');
+    });
+
+    it('应该使用 $. 访问根数据中的数组元素', () => {
+      const accessor = createDataAccessor('$.0');
+      const data = ['first', 'second', 'third'];
+      assert.strictEqual(accessor(data), 'first');
+    });
+
+    it('应该支持 $. 后跟复杂嵌套路径', () => {
+      const accessor = createDataAccessor('$.data.items.0.name');
+      const data = {
+        data: {
+          items: [
+            { name: 'Item1', value: 100 },
+            { name: 'Item2', value: 200 }
+          ]
+        },
+        other: { value: 'ignored' }
+      };
+      assert.strictEqual(accessor(data), 'Item1');
+    });
+
+    it('应该支持混合使用 $ 和普通路径', () => {
+      const accessor = createDataAccessor('$.user');
+      const data = { user: { name: 'Bob' }, other: { name: 'ignored' } };
+      assert.deepStrictEqual(accessor(data), { name: 'Bob' });
+    });
+
+    it('应该处理 $ 路径访问不存在的属性', () => {
+      const accessor = createDataAccessor('$.missing');
+      const data = { name: 'test' };
+      assert.strictEqual(accessor(data), null);
+    });
+
+    it('应该处理 $ 路径访问 null 数据', () => {
+      const accessor = createDataAccessor('$.user.name');
+      assert.strictEqual(accessor(null), null);
+    });
+
+    it('应该处理 $ 路径访问 undefined 数据', () => {
+      const accessor = createDataAccessor('$.user.name');
+      assert.strictEqual(accessor(undefined), null);
+    });
+
+    it('应该支持 $ 路径中的负索引', () => {
+      const accessor = createDataAccessor('$.items.-1');
+      const data = { items: ['a', 'b', 'c'] };
+      assert.strictEqual(accessor(data), 'c');
+    });
+  });
 });
 
 // ==================== createArrayAccessor 测试 ====================

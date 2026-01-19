@@ -38,23 +38,40 @@ function isSchemaType(value: unknown): value is SchemaType {
   return VALID_TYPES.includes(value as SchemaType);
 }
 
-type Transformer = (data: unknown) => unknown;
+type Transformer = (data: unknown, rootData: unknown) => unknown;
 
 function compileSchema(schema: SchemaExpress): Transformer {
   const accessor = createDataAccessor(schema.path);
+  const hasRootRef = schema.path.includes('$');
 
   switch (schema.type) {
   case 'string':
-    return (data) => toString(accessor(data));
+    return (data, rootData) => {
+      const target = hasRootRef ? rootData : data;
+      const value = accessor(target);
+      return toString(value);
+    };
 
   case 'number':
-    return (data) => toNumber(accessor(data));
+    return (data, rootData) => {
+      const target = hasRootRef ? rootData : data;
+      const value = accessor(target);
+      return toNumber(value);
+    };
 
   case 'integer':
-    return (data) => toInteger(accessor(data));
+    return (data, rootData) => {
+      const target = hasRootRef ? rootData : data;
+      const value = accessor(target);
+      return toInteger(value);
+    };
 
   case 'boolean':
-    return (data) => toBoolean(accessor(data));
+    return (data, rootData) => {
+      const target = hasRootRef ? rootData : data;
+      const value = accessor(target);
+      return toBoolean(value);
+    };
 
   case 'array': {
     const itemSchema = schema.items.path
@@ -63,25 +80,30 @@ function compileSchema(schema: SchemaExpress): Transformer {
 
     const itemTransform = compileSchema(itemSchema);
 
-    return (data) => {
-      const arr = toArray(accessor(data));
-      return arr.map(itemTransform);
+    return (data, rootData) => {
+      const target = hasRootRef ? rootData : data;
+      const arr = toArray(accessor(target));
+      return arr.map((item) => itemTransform(item, rootData));
     };
   }
 
   case 'object': {
     const compiledProps: Record<string, Transformer> = {};
+    const childHasRootRef: Record<string, boolean> = {};
 
     for (const [key, childSchema] of Object.entries(schema.properties)) {
       compiledProps[key] = compileSchema(childSchema);
+      childHasRootRef[key] = childSchema.path.includes('$');
     }
 
-    return (data) => {
-      const obj = toObject(accessor(data));
+    return (data, rootData) => {
+      const target = hasRootRef ? rootData : data;
+      const obj = toObject(accessor(target));
       const result: Record<string, unknown> = {};
 
       for (const key in compiledProps) {
-        result[key] = compiledProps[key](obj);
+        const childTarget = childHasRootRef[key] ? rootData : (obj ?? {});
+        result[key] = compiledProps[key](childTarget, rootData);
       }
 
       return result;
@@ -173,7 +195,7 @@ export function createTransform(schema: SchemaExpress) {
 
   return (data: unknown): unknown => {
     try {
-      return transformer(data);
+      return transformer(data, data);
     } catch (error) {
       throw new Error(
         `Data transformation failed: ${
