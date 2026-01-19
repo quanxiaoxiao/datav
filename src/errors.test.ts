@@ -9,8 +9,8 @@ import {
   isDataVError,
   getErrorCode,
 } from './errors.js';
-import { parseValueByType } from './parseValueByType.js';
-import { parseDotPath } from './parseDotPath.js';
+import { parseValueByType } from './parse-value-by-type.js';
+import { parseDotPath } from './parse-dot-path.js';
 
 test('DataVError 类', async (t) => {
   await t.test('应该正确创建错误实例', () => {

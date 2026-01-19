@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { parseDotPath } from './parseDotPath.js';
+import { parseDotPath } from './parse-dot-path.js';
 import { isDataVError, ERROR_CODES } from './errors.js';
 
 /**

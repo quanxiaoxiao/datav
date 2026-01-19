@@ -1,4 +1,4 @@
-import { createDataAccessor } from './createDataAccessor.js';
+import { createDataAccessor } from './create-data-accessor.js';
 import {
   toArray,
   toBoolean,
@@ -6,7 +6,7 @@ import {
   toNumber,
   toObject,
   toString,
-} from './parseValueByType.js';
+} from './parse-value-by-type.js';
 
 interface ValidationResult {
   valid: boolean;

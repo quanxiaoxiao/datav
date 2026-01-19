@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { test, describe, it } from 'node:test';
 
-import { createArrayAccessor, createDataAccessor, createPathAccessor } from './createDataAccessor.js';
+import { createArrayAccessor, createDataAccessor, createPathAccessor } from './create-data-accessor.js';
 
 describe('createDataAccessor', () => {
   describe('类型验证', () => {
