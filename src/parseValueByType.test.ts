@@ -20,43 +20,50 @@ import {
 } from './parseValueByType.js';
 import { isDataVError, ERROR_CODES } from './errors.js';
 
+// 辅助函数：测试错误码
+const assertDataVError = (fn: () => void, expectedCode: string) => {
+  assert.throws(fn, (err: unknown) => {
+    assert.ok(isDataVError(err));
+    assert.strictEqual((err as { code: string }).code, expectedCode);
+    return true;
+  });
+};
+
+// 辅助函数：批量测试用例
+const runTestCases = <T>(
+  cases: Array<{ input: any; expected: T; desc?: string }>,
+  transformFn: (input: any) => T,
+  equalityFn: (actual: T, expected: T) => void = assert.strictEqual
+) => {
+  cases.forEach(({ input, expected, desc }) => {
+    const description = desc || `${JSON.stringify(input)} -> ${JSON.stringify(expected)}`;
+    it(description, () => {
+      equalityFn(transformFn(input), expected);
+    });
+  });
+};
+
 describe('parseValueByType', () => {
   describe('参数验证', () => {
     it('应该在类型参数为空时抛出错误', () => {
-      assert.throws(
+      assertDataVError(
         () => parseValueByType('test', null as unknown as string),
-        (err: unknown) => {
-          assert.ok(isDataVError(err));
-          assert.strictEqual((err as { code: string }).code, ERROR_CODES.EMPTY_DATA_TYPE);
-          return true;
-        },
+        ERROR_CODES.EMPTY_DATA_TYPE
       );
-      assert.throws(
+      assertDataVError(
         () => parseValueByType('test', undefined as unknown as string),
-        (err: unknown) => {
-          assert.ok(isDataVError(err));
-          assert.strictEqual((err as { code: string }).code, ERROR_CODES.EMPTY_DATA_TYPE);
-          return true;
-        },
+        ERROR_CODES.EMPTY_DATA_TYPE
       );
     });
 
     it('应该在类型参数无效时抛出错误', () => {
-      assert.throws(
+      assertDataVError(
         () => parseValueByType('aaa', 'bbb' as unknown as string),
-        (err: unknown) => {
-          assert.ok(isDataVError(err));
-          assert.strictEqual((err as { code: string }).code, ERROR_CODES.INVALID_DATA_TYPE);
-          return true;
-        },
+        ERROR_CODES.INVALID_DATA_TYPE
       );
-      assert.throws(
+      assertDataVError(
         () => parseValueByType('test', 'invalid' as unknown as string),
-        (err: unknown) => {
-          assert.ok(isDataVError(err));
-          assert.strictEqual((err as { code: string }).code, ERROR_CODES.INVALID_DATA_TYPE);
-          return true;
-        },
+        ERROR_CODES.INVALID_DATA_TYPE
       );
     });
   });
@@ -73,18 +80,15 @@ describe('parseValueByType', () => {
     ];
 
     nullTestCases.forEach(({ type, expected, desc }) => {
-      it(`应该将 null 转换为 ${JSON.stringify(expected)} (${desc} 类型)`, () => {
+      it(`应该将 null/undefined 转换为 ${JSON.stringify(expected)} (${desc} 类型)`, () => {
         assert.deepStrictEqual(parseValueByType(null, type), expected);
-      });
-
-      it(`应该将 undefined 转换为 ${JSON.stringify(expected)} (${desc} 类型)`, () => {
         assert.deepStrictEqual(parseValueByType(undefined, type), expected);
       });
     });
   });
 
   describe('STRING 类型转换', () => {
-    const testCases = [
+    runTestCases([
       { input: 'hello', expected: 'hello', desc: '保持字符串不变' },
       { input: '', expected: '', desc: '保持空字符串不变' },
       { input: ' 1', expected: ' 1', desc: '保留空格' },
@@ -94,13 +98,7 @@ describe('parseValueByType', () => {
       { input: true, expected: 'true', desc: 'true转字符串' },
       { input: false, expected: 'false', desc: 'false转字符串' },
       { input: null, expected: null, desc: 'null保持null' },
-    ];
-
-    testCases.forEach(({ input, expected, desc }) => {
-      it(`${desc}: ${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
-        assert.strictEqual(parseValueByType(input, DATA_TYPE_STRING), expected);
-      });
-    });
+    ], (input) => parseValueByType(input, DATA_TYPE_STRING));
 
     it('应该使用数组的 toString 方法', () => {
       assert.strictEqual(parseValueByType([1, 2, 3], DATA_TYPE_STRING), '1,2,3');
@@ -121,45 +119,29 @@ describe('parseValueByType', () => {
 
   describe('INTEGER 类型转换', () => {
     describe('有效转换', () => {
-      const validCases = [
+      runTestCases([
         { input: '123', expected: 123 },
         { input: '0', expected: 0 },
         { input: '-456', expected: -456 },
         { input: '1', expected: 1 },
         { input: 42, expected: 42 },
         { input: 1, expected: 1 },
-      ];
-
-      validCases.forEach(({ input, expected }) => {
-        it(`${JSON.stringify(input)} -> ${expected}`, () => {
-          assert.strictEqual(parseValueByType(input, DATA_TYPE_INTEGER), expected);
-        });
-      });
+      ], (input) => parseValueByType(input, DATA_TYPE_INTEGER));
     });
 
     describe('浮点数取整', () => {
-      const floorCases = [
+      runTestCases([
         { input: 123.7, expected: 123 },
         { input: '99.9', expected: 99 },
         { input: -5.5, expected: -5 },
         { input: 3.1, expected: 3 },
         { input: '1.1', expected: 1 },
         { input: '-3.1', expected: -3 },
-      ];
-
-      floorCases.forEach(({ input, expected }) => {
-        it(`${JSON.stringify(input)} -> ${expected}`, () => {
-          assert.strictEqual(parseValueByType(input, DATA_TYPE_INTEGER), expected);
-        });
-      });
+      ], (input) => parseValueByType(input, DATA_TYPE_INTEGER));
     });
 
     describe('无效输入返回 null', () => {
-      const invalidCases = [
-        '', 'abc', '12abc', '1.2.3', '01', ' 1',
-        true, false, {}, [], null, NaN,
-      ];
-
+      const invalidCases = ['', 'abc', '12abc', '1.2.3', '01', ' 1', true, false, {}, [], null, NaN];
       invalidCases.forEach(input => {
         it(`${JSON.stringify(input)} -> null`, () => {
           assert.strictEqual(parseValueByType(input, DATA_TYPE_INTEGER), null);
@@ -170,7 +152,7 @@ describe('parseValueByType', () => {
 
   describe('NUMBER 类型转换', () => {
     describe('有效转换', () => {
-      const validCases = [
+      runTestCases([
         { input: '123', expected: 123 },
         { input: '123.45', expected: 123.45 },
         { input: '-67.89', expected: -67.89 },
@@ -183,16 +165,10 @@ describe('parseValueByType', () => {
         { input: 3.14, expected: 3.14 },
         { input: 1, expected: 1 },
         { input: 1e3, expected: 1000 },
-      ];
-
-      validCases.forEach(({ input, expected }) => {
-        it(`${JSON.stringify(input)} -> ${expected}`, () => {
-          assert.strictEqual(parseValueByType(input, DATA_TYPE_NUMBER), expected);
-        });
-      });
+      ], (input) => parseValueByType(input, DATA_TYPE_NUMBER));
     });
 
-    it('111', () => {
+    it('应该将 NaN 转换为 null', () => {
       assert.strictEqual(parseValueByType(NaN, DATA_TYPE_NUMBER), null);
     });
 
@@ -206,7 +182,7 @@ describe('parseValueByType', () => {
       const invalidCases = [
         '', 'a', '1a', '01', '2.5a', '2.5.', '2.5.8',
         'abc', '12abc', true, false, {}, [], null,
-        'NaN', '1e3',
+        'NaN', '1e3', 'Infinity', '-Infinity',
       ];
 
       invalidCases.forEach(input => {
@@ -214,27 +190,16 @@ describe('parseValueByType', () => {
           assert.strictEqual(parseValueByType(input, DATA_TYPE_NUMBER), null);
         });
       });
-
-      it('应该处理 Infinity', () => {
-        assert.strictEqual(parseValueByType('Infinity', DATA_TYPE_NUMBER), null);
-        assert.strictEqual(parseValueByType('-Infinity', DATA_TYPE_NUMBER), null);
-      });
     });
   });
 
   describe('BOOLEAN 类型转换', () => {
-    const testCases = [
+    runTestCases([
       { input: 'true', expected: true, desc: '字符串 "true"' },
       { input: 'false', expected: false, desc: '字符串 "false"' },
       { input: true, expected: true, desc: '布尔值 true' },
       { input: false, expected: false, desc: '布尔值 false' },
-    ];
-
-    testCases.forEach(({ input, expected, desc }) => {
-      it(`应该转换${desc}`, () => {
-        assert.strictEqual(parseValueByType(input, DATA_TYPE_BOOLEAN), expected);
-      });
-    });
+    ], (input) => parseValueByType(input, DATA_TYPE_BOOLEAN));
 
     describe('无效输入返回 null', () => {
       const invalidCases = [
@@ -251,34 +216,25 @@ describe('parseValueByType', () => {
   });
 
   describe('JSON 类型转换', () => {
-    const validCases = [
+    runTestCases([
       { input: '{"name":"test"}', expected: { name: 'test' } },
       { input: '[1,2,3]', expected: [1, 2, 3] },
       { input: '{"arr":[1,2,3]}', expected: { arr: [1, 2, 3] } },
       { input: '{"nested":{"a":1}}', expected: { nested: { a: 1 } } },
       { input: '[]', expected: [] },
       { input: '{}', expected: {} },
-    ];
-
-    validCases.forEach(({ input, expected }) => {
-      it(`${input} -> ${JSON.stringify(expected)}`, () => {
-        assert.deepStrictEqual(parseValueByType(input, DATA_TYPE_JSON), expected);
-      });
-    });
+    ], (input) => parseValueByType(input, DATA_TYPE_JSON), assert.deepStrictEqual);
 
     it('应该处理嵌套结构', () => {
       const nested = '{"user":{"name":"test","age":20},"items":[1,2,3]}';
       assert.deepStrictEqual(
         parseValueByType(nested, DATA_TYPE_JSON),
-        { user: { name: 'test', age: 20 }, items: [1, 2, 3] },
+        { user: { name: 'test', age: 20 }, items: [1, 2, 3] }
       );
     });
 
     describe('无效输入返回 null', () => {
-      const invalidCases = [
-        'invalid', '{invalid}', '{fail}', "'1'",
-        'aa', 123, 2, null,
-      ];
+      const invalidCases = ['invalid', '{invalid}', '{fail}', "'1'", 'aa', 123, 2, null];
 
       invalidCases.forEach(input => {
         it(`${JSON.stringify(input)} -> null`, () => {
@@ -293,11 +249,11 @@ describe('parseValueByType', () => {
       it('应该解析 JSON 对象字符串', () => {
         assert.deepStrictEqual(
           parseValueByType('{"name":"test","age":20}', DATA_TYPE_OBJECT),
-          { name: 'test', age: 20 },
+          { name: 'test', age: 20 }
         );
         assert.deepStrictEqual(
           parseValueByType('{"name":"cqq"}', DATA_TYPE_OBJECT),
-          { name: 'cqq' },
+          { name: 'cqq' }
         );
       });
 
@@ -316,10 +272,7 @@ describe('parseValueByType', () => {
     });
 
     describe('无效输入返回 null', () => {
-      const invalidCases = [
-        'invalid', '{invalid}',
-        123, [], true, false, null,
-      ];
+      const invalidCases = ['invalid', '{invalid}', 123, [], true, false, null];
 
       invalidCases.forEach(input => {
         it(`${JSON.stringify(input)} -> null`, () => {
@@ -330,24 +283,15 @@ describe('parseValueByType', () => {
   });
 
   describe('ARRAY 类型转换', () => {
-    const validCases = [
+    runTestCases([
       { input: '[1,2,3]', expected: [1, 2, 3] },
       { input: '["a","b"]', expected: ['a', 'b'] },
       { input: '[{"name":"test"}]', expected: [{ name: 'test' }] },
       { input: '[]', expected: [] },
-    ];
+    ], (input) => parseValueByType(input, DATA_TYPE_ARRAY), assert.deepStrictEqual);
 
-    validCases.forEach(({ input, expected }) => {
-      it(`${input} -> ${JSON.stringify(expected)}`, () => {
-        assert.deepStrictEqual(parseValueByType(input, DATA_TYPE_ARRAY), expected);
-      });
-    });
-
-    describe('无效输入返回 null', () => {
-      const invalidCases = [
-        'invalid', '[invalid', '1,2,3',
-        123, {}, true, false, null,
-      ];
+    describe('无效输入返回空数组', () => {
+      const invalidCases = ['invalid', '[invalid', '1,2,3', 123, {}, true, false, null];
 
       invalidCases.forEach(input => {
         it(`${JSON.stringify(input)} -> []`, () => {
@@ -375,36 +319,42 @@ describe('parseValueByType', () => {
       assert.strictEqual(parseValueByType('1e5', DATA_TYPE_NUMBER), null);
     });
   });
+
+  describe('类型转换综合测试', () => {
+    it('应该正确处理所有类型', () => {
+      assert.strictEqual(parseValueByType('123', DATA_TYPE_STRING), '123');
+      assert.strictEqual(parseValueByType('123', DATA_TYPE_NUMBER), 123);
+      assert.strictEqual(parseValueByType('123', DATA_TYPE_INTEGER), 123);
+      assert.strictEqual(parseValueByType('true', DATA_TYPE_BOOLEAN), true);
+      assert.deepStrictEqual(parseValueByType('[1,2,3]', DATA_TYPE_ARRAY), [1, 2, 3]);
+      assert.deepStrictEqual(parseValueByType('{"a":1}', DATA_TYPE_OBJECT), { a: 1 });
+      assert.deepStrictEqual(parseValueByType('[1,2,3]', DATA_TYPE_JSON), [1, 2, 3]);
+    });
+  });
 });
 
 describe('toString', () => {
-  it('should convert string to string', () => {
-    assert.strictEqual(toString('hello'), 'hello');
-    assert.strictEqual(toString(''), '');
-  });
+  runTestCases([
+    { input: 'hello', expected: 'hello', desc: '保持字符串不变' },
+    { input: '', expected: '', desc: '保持空字符串不变' },
+    { input: 123, expected: '123', desc: '数字转字符串' },
+    { input: 0, expected: '0', desc: '零转字符串' },
+    { input: -456.78, expected: '-456.78', desc: '负数转字符串' },
+    { input: true, expected: 'true', desc: 'true转字符串' },
+    { input: false, expected: 'false', desc: 'false转字符串' },
+    { input: null, expected: null, desc: 'null返回null' },
+    { input: undefined, expected: null, desc: 'undefined返回null' },
+  ], toString);
 
-  it('should convert number to string', () => {
-    assert.strictEqual(toString(123), '123');
-    assert.strictEqual(toString(0), '0');
-    assert.strictEqual(toString(-456.78), '-456.78');
-  });
-
-  it('should convert boolean to string', () => {
-    assert.strictEqual(toString(true), 'true');
-    assert.strictEqual(toString(false), 'false');
-  });
-
-  it('should convert object to string', () => {
-    assert.strictEqual(toString({ a: 1 }), '[object Object]');
+  it('应该转换数组为字符串', () => {
     assert.strictEqual(toString([1, 2, 3]), '1,2,3');
   });
 
-  it('should return null for null/undefined', () => {
-    assert.strictEqual(toString(null), null);
-    assert.strictEqual(toString(undefined), null);
+  it('应该转换对象为字符串', () => {
+    assert.strictEqual(toString({ a: 1 }), '[object Object]');
   });
 
-  it('should call custom toString method', () => {
+  it('应该调用自定义 toString 方法', () => {
     const obj = {
       toString() {
         return 'custom string';
@@ -415,240 +365,179 @@ describe('toString', () => {
 });
 
 describe('toNumber', () => {
-  it('should convert valid number strings', () => {
-    assert.strictEqual(toNumber('123'), 123);
-    assert.strictEqual(toNumber('0'), 0);
-    assert.strictEqual(toNumber('-456.78'), -456.78);
-    assert.strictEqual(toNumber('3.14'), 3.14);
+  describe('有效转换', () => {
+    runTestCases([
+      { input: '123', expected: 123 },
+      { input: '0', expected: 0 },
+      { input: '-456.78', expected: -456.78 },
+      { input: '3.14', expected: 3.14 },
+      { input: 123, expected: 123 },
+      { input: 0, expected: 0 },
+      { input: -456.78, expected: -456.78 },
+    ], toNumber);
   });
 
-  it('should keep numbers as is', () => {
-    assert.strictEqual(toNumber(123), 123);
-    assert.strictEqual(toNumber(0), 0);
-    assert.strictEqual(toNumber(-456.78), -456.78);
-  });
+  describe('无效转换返回 null', () => {
+    const invalidCases = [
+      'abc', '123abc', '', null, undefined, true, {}, [],
+      Infinity, -Infinity, NaN, '1e3', '1.5e2',
+    ];
 
-  it('should return null for invalid inputs', () => {
-    assert.strictEqual(toNumber('abc'), null);
-    assert.strictEqual(toNumber('123abc'), null);
-    assert.strictEqual(toNumber(''), null);
-    assert.strictEqual(toNumber(null), null);
-    assert.strictEqual(toNumber(undefined), null);
-    assert.strictEqual(toNumber(true), null);
-    assert.strictEqual(toNumber({}), null);
-    assert.strictEqual(toNumber([]), null);
-  });
-
-  it('should return null for Infinity', () => {
-    assert.strictEqual(toNumber(Infinity), null);
-    assert.strictEqual(toNumber(-Infinity), null);
-  });
-
-  it('should return null for NaN', () => {
-    assert.strictEqual(toNumber(NaN), null);
+    invalidCases.forEach(input => {
+      it(`${JSON.stringify(input)} -> null`, () => {
+        assert.strictEqual(toNumber(input), null);
+      });
+    });
   });
 });
 
 describe('toInteger', () => {
-  it('should convert valid integer strings', () => {
-    assert.strictEqual(toInteger('123'), 123);
-    assert.strictEqual(toInteger('0'), 0);
-    assert.strictEqual(toInteger('-456'), -456);
+  describe('有效转换', () => {
+    runTestCases([
+      { input: '123', expected: 123 },
+      { input: '0', expected: 0 },
+      { input: '-456', expected: -456 },
+      { input: 123, expected: 123 },
+      { input: 0, expected: 0 },
+      { input: -456, expected: -456 },
+    ], toInteger);
   });
 
-  it('should floor decimal numbers', () => {
-    assert.strictEqual(toInteger(123.7), 123);
-    assert.strictEqual(toInteger(-456.9), -456);
-    assert.strictEqual(toInteger(3.14), 3);
+  describe('浮点数取整', () => {
+    runTestCases([
+      { input: 123.7, expected: 123 },
+      { input: -456.9, expected: -456 },
+      { input: 3.14, expected: 3 },
+      { input: '123.45', expected: 123 },
+      { input: '3.14', expected: 3 },
+    ], toInteger);
   });
 
-  it('should return null for decimal strings', () => {
-    assert.strictEqual(toInteger('123.45'), 123);
-    assert.strictEqual(toInteger('3.14'), 3);
-  });
+  describe('无效转换返回 null', () => {
+    const invalidCases = ['abc', '', null, undefined, true, {}];
 
-  it('should keep integers as is', () => {
-    assert.strictEqual(toInteger(123), 123);
-    assert.strictEqual(toInteger(0), 0);
-    assert.strictEqual(toInteger(-456), -456);
-  });
-
-  it('should return null for invalid inputs', () => {
-    assert.strictEqual(toInteger('abc'), null);
-    assert.strictEqual(toInteger(''), null);
-    assert.strictEqual(toInteger(null), null);
-    assert.strictEqual(toInteger(undefined), null);
-    assert.strictEqual(toInteger(true), null);
-    assert.strictEqual(toInteger({}), null);
+    invalidCases.forEach(input => {
+      it(`${JSON.stringify(input)} -> null`, () => {
+        assert.strictEqual(toInteger(input), null);
+      });
+    });
   });
 });
 
 describe('toBoolean', () => {
-  it('should convert string "true" to true', () => {
-    assert.strictEqual(toBoolean('true'), true);
-  });
+  runTestCases([
+    { input: 'true', expected: true },
+    { input: 'false', expected: false },
+    { input: true, expected: true },
+    { input: false, expected: false },
+  ], toBoolean);
 
-  it('should convert string "false" to false', () => {
-    assert.strictEqual(toBoolean('false'), false);
-  });
+  describe('无效转换返回 null', () => {
+    const invalidCases = ['yes', 'no', '1', '0', 1, 0, '', null, undefined];
 
-  it('should convert boolean true to true', () => {
-    assert.strictEqual(toBoolean(true), true);
-  });
-
-  it('should convert boolean false to false', () => {
-    assert.strictEqual(toBoolean(false), false);
-  });
-
-  it('should return null for invalid inputs', () => {
-    assert.strictEqual(toBoolean('yes'), null);
-    assert.strictEqual(toBoolean('no'), null);
-    assert.strictEqual(toBoolean('1'), null);
-    assert.strictEqual(toBoolean('0'), null);
-    assert.strictEqual(toBoolean(1), null);
-    assert.strictEqual(toBoolean(0), null);
-    assert.strictEqual(toBoolean(''), null);
-    assert.strictEqual(toBoolean(null), null);
-    assert.strictEqual(toBoolean(undefined), null);
+    invalidCases.forEach(input => {
+      it(`${JSON.stringify(input)} -> null`, () => {
+        assert.strictEqual(toBoolean(input), null);
+      });
+    });
   });
 });
 
 describe('toArray', () => {
-  it('should parse valid JSON arrays', () => {
-    assert.deepStrictEqual(toArray('[1,2,3]'), [1, 2, 3]);
-    assert.deepStrictEqual(toArray('["a","b","c"]'), ['a', 'b', 'c']);
-    assert.deepStrictEqual(toArray('[]'), []);
-  });
+  runTestCases([
+    { input: '[1,2,3]', expected: [1, 2, 3] },
+    { input: '["a","b","c"]', expected: ['a', 'b', 'c'] },
+    { input: '[]', expected: [] },
+  ], toArray, assert.deepStrictEqual);
 
-  it('should return empty array for invalid JSON', () => {
-    assert.deepStrictEqual(toArray('not json'), []);
-    assert.deepStrictEqual(toArray(''), []);
-    assert.deepStrictEqual(toArray('{a:1}'), []);
-  });
-
-  it('should return empty array for non-array JSON', () => {
-    assert.deepStrictEqual(toArray('{"a":1}'), []);
-    assert.deepStrictEqual(toArray('123'), []);
-    assert.deepStrictEqual(toArray('"string"'), []);
-  });
-
-  it('should return empty array for null/undefined', () => {
-    assert.deepStrictEqual(toArray(null), []);
-    assert.deepStrictEqual(toArray(undefined), []);
-  });
-
-  it('should keep arrays as is', () => {
+  it('应该保持数组不变', () => {
     const arr = [1, 2, 3];
     assert.deepStrictEqual(toArray(arr), arr);
+  });
+
+  describe('无效输入返回空数组', () => {
+    const invalidCases = ['not json', '', '{a:1}', '{"a":1}', '123', '"string"', null, undefined];
+
+    invalidCases.forEach(input => {
+      it(`${JSON.stringify(input)} -> []`, () => {
+        assert.deepStrictEqual(toArray(input), []);
+      });
+    });
   });
 });
 
 describe('toObject', () => {
-  it('should parse valid JSON objects', () => {
-    assert.deepStrictEqual(toObject('{"a":1,"b":2}'), { a: 1, b: 2 });
-    assert.deepStrictEqual(toObject('{}'), {});
-  });
+  runTestCases([
+    { input: '{"a":1,"b":2}', expected: { a: 1, b: 2 } },
+    { input: '{}', expected: {} },
+  ], toObject, assert.deepStrictEqual);
 
-  it('should return null for invalid JSON', () => {
-    assert.strictEqual(toObject('not json'), null);
-    assert.strictEqual(toObject(''), null);
-    assert.strictEqual(toObject('{a:1}'), null);
-  });
-
-  it('should return null for non-object JSON', () => {
-    assert.strictEqual(toObject('[1,2,3]'), null);
-    assert.strictEqual(toObject('123'), null);
-    assert.strictEqual(toObject('"string"'), null);
-  });
-
-  it('should return null for null/undefined', () => {
-    assert.strictEqual(toObject(null), null);
-    assert.strictEqual(toObject(undefined), null);
-  });
-
-  it('should keep plain objects as is', () => {
+  it('应该保持普通对象不变', () => {
     const obj = { a: 1, b: 2 };
     assert.deepStrictEqual(toObject(obj), obj);
   });
 
-  it('should return null for non-plain objects', () => {
-    assert.strictEqual(toObject([1, 2, 3]), null);
-    assert.strictEqual(toObject(new Date()), null);
+  describe('无效输入返回 null', () => {
+    const invalidCases = [
+      'not json', '', '{a:1}', '[1,2,3]', '123', '"string"',
+      null, undefined, [1, 2, 3], new Date(),
+    ];
+
+    invalidCases.forEach(input => {
+      it(`${JSON.stringify(input)} -> null`, () => {
+        assert.strictEqual(toObject(input), null);
+      });
+    });
   });
 });
 
 describe('toJson', () => {
-  it('should parse valid JSON strings', () => {
-    assert.deepStrictEqual(toJson('{"a":1}'), { a: 1 });
-    assert.deepStrictEqual(toJson('[1,2,3]'), [1, 2, 3]);
-    assert.strictEqual(toJson('123'), 123);
-    assert.strictEqual(toJson('"string"'), 'string');
-    assert.strictEqual(toJson('true'), true);
-    assert.strictEqual(toJson('null'), null);
-  });
+  runTestCases([
+    { input: '{"a":1}', expected: { a: 1 } },
+    { input: '[1,2,3]', expected: [1, 2, 3] },
+    { input: '123', expected: 123 },
+    { input: '"string"', expected: 'string' },
+    { input: 'true', expected: true },
+    { input: 'null', expected: null },
+  ], toJson, assert.deepStrictEqual);
 
-  it('should return null for invalid JSON', () => {
-    assert.strictEqual(toJson('not json'), null);
-    assert.strictEqual(toJson(''), null);
-    assert.strictEqual(toJson('{a:1}'), null);
-  });
+  describe('无效输入返回 null', () => {
+    const invalidCases = ['not json', '', '{a:1}', null, undefined];
 
-  it('should return null for null/undefined', () => {
-    assert.strictEqual(toJson(null), null);
-    assert.strictEqual(toJson(undefined), null);
-  });
-});
-
-describe('parseValueByType', () => {
-  it('should throw error for null/undefined type', () => {
-    assert.throws(() => parseValueByType('test', null as any));
-    assert.throws(() => parseValueByType('test', undefined as any));
-  });
-
-  it('should throw error for invalid type', () => {
-    assert.throws(() => parseValueByType('test', 'invalid' as any));
-  });
-
-  it('should handle all types correctly', () => {
-    assert.strictEqual(parseValueByType('123', DATA_TYPE_STRING), '123');
-    assert.strictEqual(parseValueByType('123', DATA_TYPE_NUMBER), 123);
-    assert.strictEqual(parseValueByType('123', DATA_TYPE_INTEGER), 123);
-    assert.strictEqual(parseValueByType('true', DATA_TYPE_BOOLEAN), true);
-    assert.deepStrictEqual(parseValueByType('[1,2,3]', DATA_TYPE_ARRAY), [1, 2, 3]);
-    assert.deepStrictEqual(parseValueByType('{"a":1}', DATA_TYPE_OBJECT), { a: 1 });
-    assert.deepStrictEqual(parseValueByType('[1,2,3]', DATA_TYPE_JSON), [1, 2, 3]);
+    invalidCases.forEach(input => {
+      it(`${JSON.stringify(input)} -> null`, () => {
+        assert.strictEqual(toJson(input), null);
+      });
+    });
   });
 });
 
-describe('edge cases', () => {
-  it('should handle scientific notation', () => {
+describe('边界情况和特殊值', () => {
+  it('应该处理科学计数法', () => {
     assert.strictEqual(toNumber('1e3'), null);
     assert.strictEqual(toNumber('1.5e2'), null);
   });
 
-  it('should handle leading/trailing spaces in numbers', () => {
-    // 注意：根据实现，带空格的字符串会被拒绝
+  it('应该拒绝带空格的数字字符串', () => {
     assert.strictEqual(toNumber(' 123 '), null);
   });
 
-  it('should handle nested JSON', () => {
+  it('应该处理嵌套 JSON', () => {
     const nested = '{"a":{"b":{"c":1}}}';
     assert.deepStrictEqual(toJson(nested), { a: { b: { c: 1 } } });
   });
 
-  it('should handle special number values', () => {
+  it('应该处理特殊数字值', () => {
     assert.strictEqual(toNumber('0.0'), null);
     assert.strictEqual(toNumber('-0'), null);
   });
 
-  it('should handle empty arrays and objects', () => {
+  it('应该处理空数组和对象', () => {
     assert.deepStrictEqual(toArray('[]'), []);
     assert.deepStrictEqual(toObject('{}'), {});
   });
-});
 
-describe('type preservation', () => {
-  it('should preserve type when already correct', () => {
+  it('应该保持已有类型不变', () => {
     const num = 123;
     assert.strictEqual(toNumber(num), num);
 
@@ -662,4 +551,3 @@ describe('type preservation', () => {
     assert.deepStrictEqual(toObject(obj), obj);
   });
 });
-
