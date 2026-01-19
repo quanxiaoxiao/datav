@@ -1,4 +1,4 @@
-import { createDataAccessor } from './create-data-accessor.js';
+import { createDataAccessor } from './data-accessor.js';
 import {
   toArray,
   toBoolean,
