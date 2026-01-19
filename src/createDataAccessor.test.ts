@@ -511,3 +511,345 @@ describe('createArrayAccessor', () => {
     });
   });
 });
+
+describe('createArrayAccessor', () => {
+  it('应该访问正索引的数组元素', () => {
+    const accessor = createArrayAccessor('1');
+    const result = accessor(['a', 'b', 'c']);
+    assert.equal(result, 'b');
+  });
+
+  it('应该访问负索引的数组元素', () => {
+    const accessor = createArrayAccessor('-1');
+    const result = accessor(['a', 'b', 'c']);
+    assert.equal(result, 'c');
+  });
+
+  it('应该处理越界索引', () => {
+    const accessor = createArrayAccessor('10');
+    const result = accessor(['a', 'b']);
+    assert.equal(result, null);
+  });
+
+  it('应该处理空数组', () => {
+    const accessor = createArrayAccessor('0');
+    const result = accessor([]);
+    assert.equal(result, null);
+  });
+
+  it('应该处理非数字索引', () => {
+    const accessor = createArrayAccessor('abc');
+    const result = accessor(['a', 'b', 'c']);
+    assert.equal(result, null);
+  });
+
+  it('应该处理非数组输入', () => {
+    const accessor = createArrayAccessor('0');
+    const result = accessor({ '0': 'value' });
+    assert.equal(result, null);
+  });
+});
+
+describe('createPathAccessor', () => {
+  it('应该处理空路径', () => {
+    const accessor = createPathAccessor([]);
+    const data = { name: 'test' };
+    assert.equal(accessor(data), data);
+  });
+
+  it('应该访问单层对象属性', () => {
+    const accessor = createPathAccessor(['name']);
+    const result = accessor({ name: 'John', age: 30 });
+    assert.equal(result, 'John');
+  });
+
+  it('应该访问单层数组元素', () => {
+    const accessor = createPathAccessor(['0']);
+    const result = accessor(['first', 'second']);
+    assert.equal(result, 'first');
+  });
+
+  it('应该访问嵌套对象属性', () => {
+    const accessor = createPathAccessor(['user', 'name']);
+    const result = accessor({ user: { name: 'Jane', age: 25 } });
+    assert.equal(result, 'Jane');
+  });
+
+  it('应该访问对象中的数组', () => {
+    const accessor = createPathAccessor(['items', '1']);
+    const result = accessor({ items: ['a', 'b', 'c'] });
+    assert.equal(result, 'b');
+  });
+
+  it('应该访问数组中的对象', () => {
+    const accessor = createPathAccessor(['0', 'name']);
+    const result = accessor([{ name: 'Alice' }, { name: 'Bob' }]);
+    assert.equal(result, 'Alice');
+  });
+
+  it('应该处理深层嵌套路径', () => {
+    const accessor = createPathAccessor(['a', 'b', 'c', 'd']);
+    const data = { a: { b: { c: { d: 'value' } } } };
+    assert.equal(accessor(data), 'value');
+  });
+
+  it('应该在路径中断时返回null', () => {
+    const accessor = createPathAccessor(['user', 'address', 'city']);
+    const result = accessor({ user: { name: 'John' } });
+    assert.equal(result, null);
+  });
+
+  it('应该处理不存在的属性', () => {
+    const accessor = createPathAccessor(['nonexistent']);
+    const result = accessor({ name: 'test' });
+    assert.equal(result, null);
+  });
+});
+
+describe('createDataAccessor', () => {
+  it('应该抛出类型错误当pathname不是字符串', () => {
+    assert.throws(
+      () => createDataAccessor(123),
+      { name: 'TypeError', message: 'pathname must be a string' }
+    );
+  });
+
+  it('应该访问简单属性', () => {
+    const accessor = createDataAccessor('name');
+    const result = accessor({ name: 'Tom', age: 20 });
+    assert.equal(result, 'Tom');
+  });
+
+  it('应该访问点分隔的路径', () => {
+    const accessor = createDataAccessor('user.profile.email');
+    const data = {
+      user: {
+        profile: {
+          email: 'test@example.com',
+          phone: '123'
+        }
+      }
+    };
+    assert.equal(accessor(data), 'test@example.com');
+  });
+
+  it('应该访问混合路径(对象和数组)', () => {
+    const accessor = createDataAccessor('users.0.name');
+    const data = {
+      users: [
+        { name: 'Alice', id: 1 },
+        { name: 'Bob', id: 2 }
+      ]
+    };
+    assert.equal(accessor(data), 'Alice');
+  });
+
+  it('应该处理负数组索引', () => {
+    const accessor = createDataAccessor('items.-1');
+    const result = accessor({ items: [10, 20, 30] });
+    assert.equal(result, 30);
+  });
+
+  it('应该处理null值', () => {
+    const accessor = createDataAccessor('user.name');
+    const result = accessor(null);
+    assert.equal(result, null);
+  });
+
+  it('应该处理undefined值', () => {
+    const accessor = createDataAccessor('user.name');
+    const result = accessor(undefined);
+    assert.equal(result, null);
+  });
+
+  it('应该处理复杂嵌套结构', () => {
+    const accessor = createDataAccessor('data.0.items.1.value');
+    const data = {
+      data: [
+        {
+          items: [
+            { value: 'first' },
+            { value: 'second' },
+            { value: 'third' }
+          ]
+        }
+      ]
+    };
+    assert.equal(accessor(data), 'second');
+  });
+
+  it('应该返回null当路径不存在', () => {
+    const accessor = createDataAccessor('a.b.c.d.e');
+    const result = accessor({ a: { b: {} } });
+    assert.equal(result, null);
+  });
+
+  it('应该处理空字符串路径', () => {
+    const accessor = createDataAccessor('');
+    const data = { name: 'test' };
+    // 根据 parseDotPath 的实现,空字符串可能返回空数组
+    const result = accessor(data);
+    assert.ok(result !== undefined);
+  });
+
+  it('应该处理数组根节点', () => {
+    const accessor = createDataAccessor('1');
+    const result = accessor(['a', 'b', 'c']);
+    assert.equal(result, 'b');
+  });
+
+  it('应该处理对象属性值为0', () => {
+    const accessor = createDataAccessor('count');
+    const result = accessor({ count: 0 });
+    assert.equal(result, 0);
+  });
+
+  it('应该处理对象属性值为false', () => {
+    const accessor = createDataAccessor('flag');
+    const result = accessor({ flag: false });
+    assert.equal(result, false);
+  });
+
+  it('应该处理对象属性值为空字符串', () => {
+    const accessor = createDataAccessor('text');
+    const result = accessor({ text: '' });
+    assert.equal(result, '');
+  });
+});
+
+
+describe('Data Accessor Utils', () => {
+
+  describe('createArrayAccessor (Unit Level)', () => {
+    it('应正确访问数组的正向索引', () => {
+      const accessor = createArrayAccessor('1');
+      const data = ['a', 'b', 'c'];
+      assert.equal(accessor(data), 'b');
+    });
+
+    it('应正确访问数组的负向索引 (倒数)', () => {
+      // 索引 -1 表示最后一个元素
+      const lastAccessor = createArrayAccessor('-1');
+      const secondLastAccessor = createArrayAccessor('-2');
+      const data = ['a', 'b', 'c'];
+
+      assert.equal(lastAccessor(data), 'c');
+      assert.equal(secondLastAccessor(data), 'b');
+    });
+
+    it('当索引越界时应返回 null', () => {
+      const accessor = createArrayAccessor('5');
+      const data = ['a', 'b'];
+      assert.equal(accessor(data), null);
+    });
+
+    it('当负向索引越界时应返回 null', () => {
+      const accessor = createArrayAccessor('-5'); // 长度为2，-5 超出范围
+      const data = ['a', 'b'];
+      assert.equal(accessor(data), null);
+    });
+
+    it('当目标不是数组时应返回 null', () => {
+      const accessor = createArrayAccessor('0');
+      assert.equal(accessor({ 0: 'a' } as any), null);
+      assert.equal(accessor(null as any), null);
+    });
+
+    it('当索引无法转换为整数时应返回 null', () => {
+      // 假设 toInteger 返回 null
+      const accessor = createArrayAccessor('invalid');
+      const data = ['a', 'b'];
+      assert.equal(accessor(data), null);
+    });
+  });
+
+  describe('createDataAccessor (Integration Level)', () => {
+
+    it('如果 pathname 不是字符串应抛出 TypeError', () => {
+      assert.throws(() => {
+        // @ts-ignore 测试类型错误
+        createDataAccessor(123);
+      }, {
+        name: 'TypeError',
+        message: 'pathname must be a string'
+      });
+    });
+
+    describe('对象属性访问', () => {
+      it('应能访问一级属性', () => {
+        const accessor = createDataAccessor('name');
+        const data = { name: 'Node.js', type: 'Runtime' };
+        assert.equal(accessor(data), 'Node.js');
+      });
+
+      it('应能访问嵌套属性', () => {
+        const accessor = createDataAccessor('user.profile.age');
+        const data = { user: { profile: { age: 18 } } };
+        assert.equal(accessor(data), 18);
+      });
+
+      it('访问不存在的属性应返回 null', () => {
+        const accessor = createDataAccessor('user.missing');
+        const data = { user: { name: 'test' } };
+        assert.equal(accessor(data), null);
+      });
+
+      it('当中间路径为 null/undefined 时应安全返回 null', () => {
+        const accessor = createDataAccessor('user.profile.age');
+        const data = { user: null };
+        assert.equal(accessor(data), null);
+      });
+    });
+
+    describe('混合结构访问 (数组 + 对象)', () => {
+      it('应能访问对象中的数组', () => {
+        const accessor = createDataAccessor('users.0.name');
+        const data = { users: [{ name: 'Alice' }, { name: 'Bob' }] };
+        assert.equal(accessor(data), 'Alice');
+      });
+
+      it('应能访问数组中的对象', () => {
+        const accessor = createDataAccessor('1.id');
+        const data = [{ id: 101 }, { id: 202 }];
+        assert.equal(accessor(data), 202);
+      });
+
+      it('应支持复杂嵌套路径', () => {
+        const accessor = createDataAccessor('data.items.-1.value');
+        const data = {
+          data: {
+            items: [
+              { value: 10 },
+              { value: 20 },
+              { value: 99 } // -1 target
+            ]
+          }
+        };
+        assert.equal(accessor(data), 99);
+      });
+    });
+
+    describe('空路径与特殊情况', () => {
+      it('如果路径解析为空数组，应返回原始数据', () => {
+        // 假设 parseDotPath('') 返回 []
+        const accessor = createPathAccessor([]);
+        const data = { a: 1 };
+        assert.deepEqual(accessor(data), data);
+      });
+
+      it('如果目标拥有该属性但值为 null，应返回 null', () => {
+        const accessor = createDataAccessor('target');
+        const data = { target: null };
+        assert.equal(accessor(data), null);
+      });
+
+      it('应忽略原型链属性 (使用 hasOwnProperty)', () => {
+        const accessor = createDataAccessor('toString');
+        const data = {};
+        // 虽然 data.toString 存在，但不是 own property，createObjectAccessor 应返回 null
+        assert.equal(accessor(data), null);
+      });
+    });
+  });
+});
+
