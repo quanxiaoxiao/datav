@@ -17,7 +17,7 @@ import {
   DATA_TYPE_ARRAY,
   DATA_TYPE_OBJECT,
   DATA_TYPE_JSON,
-} from './parse-value-by-type.js';
+} from './value-type.js';
 import { isDataVError, ERROR_CODES } from './errors.js';
 
 // 辅助函数：测试错误码

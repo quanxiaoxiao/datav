@@ -9,7 +9,7 @@ import {
   isDataVError,
   getErrorCode,
 } from './errors.js';
-import { parseValueByType } from './parse-value-by-type.js';
+import { parseValueByType } from './value-type.js';
 import { parseDotPath } from './dot-path.js';
 
 test('DataVError 类', async (t) => {

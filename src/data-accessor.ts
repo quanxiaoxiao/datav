@@ -1,5 +1,5 @@
 import { parseDotPath } from './dot-path.js';
-import { toInteger } from './parse-value-by-type.js';
+import { toInteger } from './value-type.js';
 
 export type DataAccessor = (data: unknown) => unknown;
 

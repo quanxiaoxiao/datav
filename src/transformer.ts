@@ -6,7 +6,7 @@ import {
   toNumber,
   toObject,
   toString,
-} from './parse-value-by-type.js';
+} from './value-type.js';
 
 interface ValidationResult {
   valid: boolean;

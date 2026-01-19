@@ -6,7 +6,7 @@ import {
   toNumber as toNumberValue,
   toObject as toObjectValue,
   toString as toStringValue,
-} from './parse-value-by-type.js';
+} from './value-type.js';
 
 /**
  * =====================================
