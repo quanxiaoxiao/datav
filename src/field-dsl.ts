@@ -1,11 +1,11 @@
 import { createDataAccessor } from './data-accessor.js';
 import {
-  toString as toStringValue,
-  toNumber as toNumberValue,
-  toInteger as toIntegerValue,
-  toBoolean as toBooleanValue,
-  toObject as toObjectValue,
   toArray as toArrayValue,
+  toBoolean as toBooleanValue,
+  toInteger as toIntegerValue,
+  toNumber as toNumberValue,
+  toObject as toObjectValue,
+  toString as toStringValue,
 } from './parse-value-by-type.js';
 
 /**
