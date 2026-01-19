@@ -32,6 +32,13 @@ const typeNameMap: Record<DataType, string> = {
 
 const isEmpty = (value: unknown): boolean => value === '' || value == null;
 
+const isSafeNumberValue = (value: number): boolean => {
+  if (Number.isNaN(value) || !Number.isFinite(value)) {
+    return false;
+  }
+  return true;
+};
+
 const toSafeNumber = (value: unknown, isInteger: boolean): number | null => {
   if (isEmpty(value)) {
     return null;
@@ -42,8 +49,12 @@ const toSafeNumber = (value: unknown, isInteger: boolean): number | null => {
     return null;
   }
 
+  if (valueType === 'number' && !isSafeNumberValue(value)) {
+    return null;
+  }
+
   const number = Number(value);
-  if (Number.isNaN(number) || !Number.isFinite(number)) {
+  if (!isSafeNumberValue(number)) {
     return null;
   }
 
@@ -117,7 +128,6 @@ export function parseValueByType(value: unknown, type: DataType): unknown {
   if (type == null) {
     throw DataVError.emptyDataType();
   }
-
   if (!Object.hasOwn(typeTransformers, type)) {
     throw DataVError.invalidDataType(type);
   }
@@ -134,6 +144,9 @@ export function parseValueByType(value: unknown, type: DataType): unknown {
     }
 
     if (valueType === typeNameMap[type]) {
+      if (type === DATA_TYPE_NUMBER) {
+        return isSafeNumberValue(value) ? value : null;
+      }
       if (type === DATA_TYPE_ARRAY) {
         return Array.isArray(value) ? value : [];
       }

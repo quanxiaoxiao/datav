@@ -29,6 +29,7 @@
   ],
   "sideEffects": false,
   "scripts": {
+    "test:single": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --test-only",
     "test": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/**/*.test.ts'",
     "build": "tsc && rm -rf dist/*.test.* dist/**/*.test.*",
     "check": "tsc --noEmit",
