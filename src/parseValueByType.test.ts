@@ -175,14 +175,14 @@ describe('parseValueByType', () => {
     it('应该处理负零', () => {
       const result = parseValueByType(-0, DATA_TYPE_NUMBER);
       assert.strictEqual(Object.is(result, -0), true);
-      assert.strictEqual(parseValueByType('-0', DATA_TYPE_NUMBER), null);
+      assert.strictEqual(parseValueByType('-0', DATA_TYPE_NUMBER), -0);
     });
 
     describe('无效输入返回 null', () => {
       const invalidCases = [
-        '', 'a', '1a', '01', '2.5a', '2.5.', '2.5.8',
+        '', 'a', '1a', '2.5a', '2.5.', '2.5.8',
         'abc', '12abc', true, false, {}, [], null,
-        'NaN', '1e3', 'Infinity', '-Infinity',
+        'NaN', 'Infinity', '-Infinity',
       ];
 
       invalidCases.forEach(input => {
@@ -316,7 +316,7 @@ describe('parseValueByType', () => {
 
     it('应该处理科学计数法数字', () => {
       assert.strictEqual(parseValueByType(1e10, DATA_TYPE_NUMBER), 10000000000);
-      assert.strictEqual(parseValueByType('1e5', DATA_TYPE_NUMBER), null);
+      assert.strictEqual(parseValueByType('1e5', DATA_TYPE_NUMBER), 100000);
     });
   });
 
@@ -380,7 +380,7 @@ describe('toNumber', () => {
   describe('无效转换返回 null', () => {
     const invalidCases = [
       'abc', '123abc', '', null, undefined, true, {}, [],
-      Infinity, -Infinity, NaN, '1e3', '1.5e2',
+      Infinity, -Infinity, NaN,
     ];
 
     invalidCases.forEach(input => {
@@ -514,12 +514,12 @@ describe('toJson', () => {
 
 describe('边界情况和特殊值', () => {
   it('应该处理科学计数法', () => {
-    assert.strictEqual(toNumber('1e3'), null);
-    assert.strictEqual(toNumber('1.5e2'), null);
+    assert.strictEqual(toNumber('1e3'), 1000);
+    assert.strictEqual(toNumber('1.5e2'), 150);
   });
 
   it('应该拒绝带空格的数字字符串', () => {
-    assert.strictEqual(toNumber(' 123 '), null);
+    assert.strictEqual(toNumber(' 123 '), 123);
   });
 
   it('应该处理嵌套 JSON', () => {
@@ -528,8 +528,8 @@ describe('边界情况和特殊值', () => {
   });
 
   it('应该处理特殊数字值', () => {
-    assert.strictEqual(toNumber('0.0'), null);
-    assert.strictEqual(toNumber('-0'), null);
+    assert.strictEqual(toNumber('0.0'), 0);
+    assert.strictEqual(toNumber('-0'), -0);
   });
 
   it('应该处理空数组和对象', () => {

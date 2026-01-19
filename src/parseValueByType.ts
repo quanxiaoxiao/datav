@@ -58,15 +58,15 @@ const toSafeNumber = (value: unknown, isInteger: boolean): number | null => {
     return null;
   }
 
+  if (!isInteger) {
+    return number;
+  }
+
   if (String(number) !== String(value)) {
     return null;
   }
 
-  if (isInteger) {
-    return parseInt(number.toString(), 10);
-  }
-
-  return number;
+  return parseInt(number.toString(), 10);
 };
 
 const safeJsonParse = (value: unknown): unknown => {
