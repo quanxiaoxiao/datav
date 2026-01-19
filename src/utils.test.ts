@@ -1,4 +1,4 @@
-import assert from 'node:assert';
+import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
 import { isEmpty, isPlainObject } from './utils.js';
