@@ -50,16 +50,16 @@ function createField<T>(
 // 基础类型转换器
 // ============================================================================
 
-export const toString = (path?: string): Field<string> =>
+export const toString = (path?: string): Field<string | null> =>
   createField(path, toStringValue);
 
-export const toNumber = (path?: string): Field<number> =>
+export const toNumber = (path?: string): Field<number | null> =>
   createField(path, toNumberValue);
 
-export const toInteger = (path?: string): Field<number> =>
+export const toInteger = (path?: string): Field<number | null> =>
   createField(path, toIntegerValue);
 
-export const toBoolean = (path?: string): Field<boolean> =>
+export const toBoolean = (path?: string): Field<boolean | null> =>
   createField(path, toBooleanValue);
 
 // ============================================================================
@@ -123,7 +123,7 @@ export function toArray<T extends Field>(
 
     for (let i = 0; i < arr.length; i++) {
       try {
-        result.push(field.run(arr[i]));
+        result.push(field.run(arr[i]) as TypeOf<T>);
       } catch (error) {
         throw wrapError(error, `[${i}]`);
       }
