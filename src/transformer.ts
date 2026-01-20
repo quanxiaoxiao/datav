@@ -23,13 +23,24 @@ interface ValidationResult {
 
 type Transformer = (data: unknown, rootData: unknown) => unknown;
 
-export type SchemaType = 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
+type DefaultValueByType =
+  | string
+  | number
+  | boolean
+  | Record<string, unknown>
+  | unknown[];
 
-export type SchemaExpress = { path: string, resolve?: Resolver } & (
+export type SchemaExpress = {
+  path: string;
+  resolve?: Resolver;
+  defaultValue?: DefaultValueByType;
+} & (
   | { type: 'string' | 'number' | 'boolean' | 'integer' }
   | { type: 'object'; properties: Record<string, SchemaExpress> }
   | { type: 'array'; items: SchemaExpress }
 );
+
+export type SchemaType = 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
 
 const VALID_TYPES: readonly SchemaType[] = [
   'string',
@@ -39,6 +50,23 @@ const VALID_TYPES: readonly SchemaType[] = [
   'object',
   'array',
 ] as const;
+
+function applyDefaultValue(
+  value: unknown,
+  schema: SchemaExpress,
+): unknown {
+  if (schema.defaultValue === undefined) {
+    return value;
+  }
+
+  if (schema.type === 'array') {
+    return Array.isArray(value) && value.length === 0
+      ? schema.defaultValue
+      : value;
+  }
+
+  return value === null ? schema.defaultValue : value;
+}
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -74,25 +102,29 @@ function compileSchema(schema: SchemaExpress): Transformer {
   case 'string':
     return (data, rootData) => {
       const value = readValue(accessor, schema, data, rootData);
-      return toString(value);
+      const converted = toString(value);
+      return applyDefaultValue(converted, schema);
     };
 
   case 'number':
     return (data, rootData) => {
       const value = readValue(accessor, schema, data, rootData);
-      return toNumber(value);
+      const converted = toNumber(value);
+      return applyDefaultValue(converted, schema);
     };
 
   case 'integer':
     return (data, rootData) => {
       const value = readValue(accessor, schema, data, rootData);
-      return toInteger(value);
+      const converted = toInteger(value);
+      return applyDefaultValue(converted, schema);
     };
 
   case 'boolean':
     return (data, rootData) => {
       const value = readValue(accessor, schema, data, rootData);
-      return toBoolean(value);
+      const converted = toBoolean(value);
+      return applyDefaultValue(converted, schema);
     };
 
   case 'array': {
@@ -105,7 +137,8 @@ function compileSchema(schema: SchemaExpress): Transformer {
     return (data, rootData) => {
       const value = readValue(accessor, schema, data, rootData);
       const arr = toArray(value);
-      return arr.map((item) => itemTransform(item, rootData));
+      const mapped = arr.map((item) => itemTransform(item, rootData));
+      return applyDefaultValue(mapped, schema);
     };
   }
 
@@ -125,7 +158,7 @@ function compileSchema(schema: SchemaExpress): Transformer {
         result[key] = compiledProps[key](obj ?? {}, rootData);
       }
 
-      return result;
+      return applyDefaultValue(result, schema);
     };
   }
 
@@ -133,6 +166,27 @@ function compileSchema(schema: SchemaExpress): Transformer {
     const neverType: never = schema;
     throw new Error(`Unhandled schema type: ${neverType}`);
   }
+  }
+}
+
+function isDefaultValueValid(
+  type: SchemaType,
+  value: unknown,
+): boolean {
+  switch (type) {
+  case 'string':
+    return typeof value === 'string';
+  case 'number':
+  case 'integer':
+    return typeof value === 'number';
+  case 'boolean':
+    return typeof value === 'boolean';
+  case 'object':
+    return isObject(value);
+  case 'array':
+    return Array.isArray(value);
+  default:
+    return false;
   }
 }
 
@@ -195,6 +249,14 @@ export function validateExpressSchema(
 
   default:
     break;
+  }
+
+  if ('defaultValue' in node && node.defaultValue !== undefined) {
+    if (!isDefaultValueValid(node.type as SchemaType, node.defaultValue)) {
+      errors.push(
+        `[${currentPath}]: defaultValue does not match type "${node.type}"`,
+      );
+    }
   }
 
   return {
