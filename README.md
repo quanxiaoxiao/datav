@@ -12,6 +12,7 @@
 - **类型安全**: 完整的 TypeScript 类型支持，编译时检查
 - **路径访问**: 强大的点分隔符路径访问，支持嵌套和数组索引
 - **类型转换**: 自动类型转换，处理 string/number/boolean/integer 等
+- **默认值支持**: 支持 `defaultValue`，在数据缺失或为空时提供默认值
 - **错误处理**: 完善的错误机制，提供详细的错误信息
 
 ## 安装
@@ -45,6 +46,30 @@ const result = transform(schema, {
   active: 'true',
 });
 // { name: '123', age: 30, active: true }
+```
+
+#### 默认值 (defaultValue)
+
+当数据缺失或为空时，可以提供默认值：
+
+```typescript
+const schema = {
+  path: '.',
+  type: 'object',
+  properties: {
+    name: { path: '.name', type: 'string', defaultValue: 'Anonymous' },
+    count: { path: '.count', type: 'number', defaultValue: 0 },
+    items: {
+      path: '.items',
+      type: 'array',
+      items: { path: '.', type: 'string' },
+      defaultValue: ['default item'],
+    },
+  },
+};
+
+transform(schema, { name: null, count: null, items: [] });
+// { name: 'Anonymous', count: 0, items: ['default item'] }
 ```
 
 ### Field DSL 模式
@@ -282,9 +307,57 @@ interface SchemaExpress {
   path: string;
   type: SchemaType;
   resolve?: (value: unknown, context: { data: unknown; rootData: unknown; path: string }) => unknown;
+  defaultValue?: string | number | boolean | Record<string, unknown> | unknown[];
   properties?: Record<string, SchemaExpress>;
   items?: SchemaExpress;
 }
+```
+
+### 默认值 (defaultValue)
+
+Schema 支持 `defaultValue` 字段，当原始数据缺失、为空或为 `null` 时，将使用默认值：
+
+```typescript
+// primitive 类型
+const schema1 = {
+  path: '.name',
+  type: 'string',
+  defaultValue: 'Unknown',
+};
+
+// array 类型 - 空数组时使用默认值
+const schema2 = {
+  path: '.tags',
+  type: 'array',
+  items: { path: '.', type: 'string' },
+  defaultValue: ['untagged'],
+};
+
+// object 类型 - null 时使用默认值
+const schema3 = {
+  path: '.config',
+  type: 'object',
+  properties: { theme: { path: 'theme', type: 'string' } },
+  defaultValue: { theme: 'light' },
+};
+
+// 嵌套结构中的 defaultValue
+const schema4 = {
+  path: '.',
+  type: 'object',
+  properties: {
+    user: {
+      path: '.user',
+      type: 'object',
+      properties: {
+        name: { path: '.name', type: 'string', defaultValue: 'Guest' },
+      },
+    },
+  },
+};
+
+transform(schema4, { user: { name: null } });
+// { user: { name: 'Guest' } }
 ```
 
 ## 许可证
