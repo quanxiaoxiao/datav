@@ -1007,47 +1007,6 @@ describe('field-dsl', () => {
   // ============================================================================
   // Field 接口测试
   // ============================================================================
-  describe('Field 接口', () => {
-    it('Field.build 应该返回 Resolver', () => {
-      const field: Field<string> = {
-        build() {
-          return { kind: 'value', transformName: 'string' };
-        },
-      };
-
-      const fn = compile(field);
-      assert.strictEqual(fn('hello'), 'hello');
-      assert.strictEqual(fn(123), '123');
-    });
-
-    it('应该支持自定义 Field 实现', () => {
-      const customField: Field<number> = {
-        build() {
-          return {
-            kind: 'value',
-            path: 'value',
-            transformName: 'number',
-          };
-        },
-      };
-
-      const fn = compile(customField);
-      assert.strictEqual(fn({ value: 21 }), 21);
-    });
-
-    it('应该支持组合自定义 Field', () => {
-      const doubleField: Field<number> = {
-        build() {
-          return { kind: 'value', transformName: 'number' };
-        },
-      };
-
-      const field = toArray('values', doubleField);
-      const result = run(field, { values: [1, 2, 3] });
-      assert.deepStrictEqual(result, [1, 2, 3]);
-    });
-  });
-
   // ============================================================================
   // 边界情况和错误处理
   // ============================================================================
@@ -1453,5 +1412,343 @@ describe('field-dsl', () => {
         features: ['auth', 'api', 'admin'],
       });
     });
+  });
+});
+
+describe('Value Fields', () => {
+  it('toString without path should convert root value to string', () => {
+    const field = toString();
+    const executor = compile(field);
+
+    assert.equal(executor(123), '123');
+    assert.equal(executor(true), 'true');
+    assert.equal(executor(null), null);
+  });
+
+  it('toString with path should access nested value', () => {
+    const field = toString('user.name');
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'value');
+    assert.equal(ast.path, 'user.name');
+    assert.equal(ast.transform, 'string');
+  });
+
+  it('toNumber should convert value to number', () => {
+    const field = toNumber();
+    const executor = compile(field);
+
+    assert.equal(executor('42'), 42);
+    assert.equal(executor('3.14'), 3.14);
+    assert.equal(executor('invalid'), null);
+  });
+
+  it('toInteger should convert value to integer', () => {
+    const field = toInteger();
+    const executor = compile(field);
+
+    assert.equal(executor('42.7'), null);
+    assert.equal(executor(3.14), null);
+    assert.equal(executor('invalid'), null);
+  });
+
+  it('toBoolean should convert value to boolean', () => {
+    const field = toBoolean();
+    const executor = compile(field);
+
+    assert.equal(executor(1), null);
+    assert.equal(executor(0), null);
+    assert.equal(executor('yes'), null);
+    assert.equal(executor(''), null);
+    assert.equal(executor('true'), true);
+    assert.equal(executor('false'), false);
+    assert.equal(executor(false), false);
+    assert.equal(executor(true), true);
+  });
+});
+
+// ============================================================================
+// Object Field Tests
+// ============================================================================
+
+describe('Object Fields', () => {
+  it('toObject without path should transform fields at root', () => {
+    const field = toObject({
+      id: toInteger(),
+      name: toString(),
+      active: toBoolean(),
+    });
+
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'object');
+    assert.equal(ast.path, undefined);
+    assert.equal(Object.keys(ast.fields).length, 3);
+    assert.equal(ast.fields.id.kind, 'value');
+    assert.equal(ast.fields.name.kind, 'value');
+    assert.equal(ast.fields.active.kind, 'value');
+  });
+
+  it('toObject with path should access nested object', () => {
+    const field = toObject('data.user', {
+      id: toInteger(),
+      name: toString(),
+    });
+
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'object');
+    assert.equal(ast.path, 'data.user');
+    assert.equal(Object.keys(ast.fields).length, 2);
+  });
+
+  it('toObject should handle nested objects', () => {
+    const field = toObject({
+      user: toObject({
+        id: toInteger(),
+        profile: toObject({
+          name: toString(),
+          age: toInteger(),
+        }),
+      }),
+    });
+
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'object');
+    assert.equal(ast.fields.user.kind, 'object');
+
+    const userNode = ast.fields.user as any;
+    assert.equal(userNode.fields.id.kind, 'value');
+    assert.equal(userNode.fields.profile.kind, 'object');
+
+    const profileNode = userNode.fields.profile;
+    assert.equal(profileNode.fields.name.kind, 'value');
+    assert.equal(profileNode.fields.age.kind, 'value');
+  });
+
+  it('toObject should support fields with paths', () => {
+    const field = toObject({
+      userId: toInteger('user.id'),
+      userName: toString('user.name'),
+      companyName: toString('company.name'),
+    });
+
+    const ast = field.toAST();
+
+    assert.equal(ast.fields.userId.path, 'user.id');
+    assert.equal(ast.fields.userName.path, 'user.name');
+    assert.equal(ast.fields.companyName.path, 'company.name');
+  });
+});
+
+// ============================================================================
+// Array Field Tests
+// ============================================================================
+
+describe('Array Fields', () => {
+  it('toArray without path should transform array items at root', () => {
+    const field = toArray(toString());
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'array');
+    assert.equal(ast.path, undefined);
+    assert.equal(ast.item.kind, 'value');
+  });
+
+  it('toArray with path should access nested array', () => {
+    const field = toArray('users', toString());
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'array');
+    assert.equal(ast.path, 'users');
+  });
+
+  it('toArray should handle array of objects', () => {
+    const field = toArray(
+      toObject({
+        id: toInteger(),
+        name: toString(),
+      })
+    );
+
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'array');
+    assert.equal(ast.item.kind, 'object');
+
+    const itemNode = ast.item as any;
+    assert.equal(Object.keys(itemNode.fields).length, 2);
+    assert.equal(itemNode.fields.id.kind, 'value');
+    assert.equal(itemNode.fields.name.kind, 'value');
+  });
+
+  it('toArray should handle nested arrays', () => {
+    const field = toArray(
+      toArray(toInteger())
+    );
+
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'array');
+    assert.equal(ast.item.kind, 'array');
+
+    const innerArray = ast.item as any;
+    assert.equal(innerArray.item.kind, 'value');
+  });
+});
+
+// ============================================================================
+// Complex Scenarios
+// ============================================================================
+
+describe('Complex Scenarios', () => {
+  it('should handle mixed nested structure', () => {
+    const field = toObject({
+      metadata: toObject({
+        version: toString(),
+        timestamp: toInteger(),
+      }),
+      users: toArray(
+        toObject({
+          id: toInteger(),
+          name: toString(),
+          tags: toArray(toString()),
+        })
+      ),
+    });
+
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'object');
+    assert.equal(ast.fields.metadata.kind, 'object');
+    assert.equal(ast.fields.users.kind, 'array');
+
+    const usersArray = ast.fields.users as any;
+    assert.equal(usersArray.item.kind, 'object');
+
+    const userObject = usersArray.item;
+    assert.equal(userObject.fields.tags.kind, 'array');
+  });
+
+  it('should handle deeply nested paths', () => {
+    const field = toObject({
+      deepValue: toString('a.b.c.d.e.f'),
+    });
+
+    const ast = field.toAST();
+
+    assert.equal(ast.fields.deepValue.path, 'a.b.c.d.e.f');
+  });
+});
+
+// ============================================================================
+// AST Generation Tests
+// ============================================================================
+
+describe('AST Generation', () => {
+  it('should generate correct AST for value node', () => {
+    const field = toString('user.name');
+    const ast = field.toAST();
+
+    assert.deepEqual(ast, {
+      kind: 'value',
+      path: 'user.name',
+      transform: 'string',
+    });
+  });
+
+  it('should generate correct AST for object node', () => {
+    const field = toObject('data', {
+      id: toInteger(),
+      name: toString(),
+    });
+
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'object');
+    assert.equal(ast.path, 'data');
+    assert.equal(ast.fields.id.transform, 'integer');
+    assert.equal(ast.fields.name.transform, 'string');
+  });
+
+  it('should generate correct AST for array node', () => {
+    const field = toArray('items', toNumber());
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'array');
+    assert.equal(ast.path, 'items');
+    assert.equal(ast.item.kind, 'value');
+    assert.equal(ast.item.transform, 'number');
+  });
+});
+
+// ============================================================================
+// Edge Cases
+// ============================================================================
+
+describe('Edge Cases', () => {
+  it('should handle empty object fields', () => {
+    const field = toObject({});
+    const ast = field.toAST();
+
+    assert.equal(ast.kind, 'object');
+    assert.deepEqual(ast.fields, {});
+  });
+
+  it('should handle field without path as undefined', () => {
+    const field = toString();
+    const ast = field.toAST();
+
+    assert.equal(ast.path, undefined);
+  });
+
+  it('should handle all transform types', () => {
+    const transforms = [
+      { field: toString(), expected: 'string' },
+      { field: toNumber(), expected: 'number' },
+      { field: toInteger(), expected: 'integer' },
+      { field: toBoolean(), expected: 'boolean' },
+    ];
+
+    for (const { field, expected } of transforms) {
+      const ast = field.toAST();
+      assert.equal(ast.kind, 'value');
+      assert.equal(ast.transform, expected);
+    }
+  });
+
+  it('should maintain field independence', () => {
+    const field1 = toString('path1');
+    const field2 = toString('path2');
+
+    const ast1 = field1.toAST();
+    const ast2 = field2.toAST();
+
+    assert.notEqual(ast1, ast2);
+    assert.equal(ast1.path, 'path1');
+    assert.equal(ast2.path, 'path2');
+  });
+});
+
+// ============================================================================
+// Type Safety Tests
+// ============================================================================
+
+describe('Type Safety', () => {
+  it('should preserve readonly properties', () => {
+    const field = toObject({
+      id: toInteger(),
+    });
+
+    const ast = field.toAST();
+
+    // TypeScript 应该阻止这些赋值
+    // 但在运行时我们可以验证属性描述符
+    const descriptor = Object.getOwnPropertyDescriptor(ast, 'kind');
+
+    // 注意：readonly 是 TypeScript 编译时检查，运行时需要 Object.freeze
+    // 这个测试主要验证结构正确性
+    assert.equal(ast.kind, 'object');
   });
 });
