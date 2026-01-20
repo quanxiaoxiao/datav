@@ -13,6 +13,7 @@
 - **路径访问** - 支持点分路径访问嵌套数据
 - **根路径引用** - 使用 `$` 从根数据访问任意位置
 - **丰富类型转换** - 自动处理字符串到数值/布尔值的转换
+- **自定义转换** - 通过 `resolve` 函数实现复杂数据转换逻辑
 - **轻量高效** - 零额外依赖，仅 6KB (gzip)
 - **完善错误处理** - 统一的 `DataVError` 错误类型
 
@@ -86,6 +87,49 @@ const result = transform(schema, {
 
 // 输出: { users: [{ id: 1, name: 'Bob', email: 'bob@example.com' }, { id: 2, name: 'Charlie', email: 'charlie@example.com' }] }
 ```
+
+#### 自定义转换（resolve）
+
+使用 `resolve` 函数实现复杂的数据转换逻辑：
+
+```typescript
+import { transform } from '@quanxiaoxiao/datav';
+
+const schema = {
+  path: '.',
+  type: 'object',
+  properties: {
+    price: {
+      path: '.price',
+      type: 'number',
+      resolve: (value, ctx) => (value as number) * (ctx.rootData as any).multiplier,
+    },
+    discount: {
+      path: '.originalPrice',
+      type: 'number',
+      resolve: (value) => (value as number) * 0.9,
+    },
+    itemCount: {
+      path: '.items',
+      type: 'string',
+      resolve: (value) => `共${(value as any[]).length}件商品`,
+    },
+  },
+};
+
+transform(schema, {
+  price: 100,
+  originalPrice: 200,
+  multiplier: 1.5,
+  items: [{ name: 'A' }, { name: 'B' }],
+});
+
+// 输出: { price: 150, discount: 180, itemCount: '共2件商品' }
+```
+
+`resolve` 函数接收两个参数：
+- `value`: 从路径读取的原始值
+- `context`: 包含 `{ data, rootData, path }` 的上下文对象
 
 ## 路径语法
 
@@ -176,6 +220,16 @@ type UserType = Infer<typeof userField>;
 | `createTransform(schema)` | 创建转换函数 |
 | `SchemaExpress` | Schema 类型定义 |
 
+#### SchemaExpress 属性
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `path` | `string` | 数据路径，支持点分路径和 `$` 根路径引用 |
+| `type` | `'string' \| 'number' \| 'boolean' \| 'integer' \| 'object' \| 'array'` | 数据类型 |
+| `resolve?` | `(value, context) => unknown` | 自定义转换函数（可选） |
+| `properties?` | `Record<string, SchemaExpress>` | 对象类型属性定义（仅 type 为 object 时需要） |
+| `items?` | `SchemaExpress` | 数组元素类型定义（仅 type 为 array 时需要） |
+
 ## 错误处理
 
 转换过程中遇到无效数据时返回 `null`，而非抛出异常：
@@ -213,6 +267,7 @@ try {
 | Field DSL | ✅ | ❌ | ❌ | ❌ |
 | 类型推导 | ✅ | ❌ | ✅ | ❌ |
 | 根路径引用 | ✅ | ❌ | ❌ | ❌ |
+| 自定义转换 (resolve) | ✅ | ❌ | ✅ | ✅ |
 
 ## 相关链接
 
