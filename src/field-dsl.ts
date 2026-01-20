@@ -8,8 +8,6 @@ import {
   toString as toStringValue,
 } from './value-type.js';
 
-export type ASTNode = ValueNode | ObjectNode | ArrayNode;
-
 interface BaseNode {
   readonly kind: string;
   readonly path?: string;
@@ -19,6 +17,8 @@ export interface ValueNode extends BaseNode {
   readonly kind: 'value';
   readonly transform: 'string' | 'number' | 'integer' | 'boolean';
 }
+
+export type ASTNode = ValueNode | ObjectNode | ArrayNode;
 
 export interface ObjectNode extends BaseNode {
   readonly kind: 'object';
