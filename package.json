@@ -1,6 +1,6 @@
 {
   "name": "@quanxiaoxiao/datav",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Data transformation utility with type conversion, path access, and schema-driven data transformation",
   "type": "module",
   "keywords": [

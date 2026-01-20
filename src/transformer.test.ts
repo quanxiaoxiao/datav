@@ -1518,4 +1518,93 @@ describe('transform', () => {
       });
     });
   });
+
+  test('高德POI搜索结果转换', () => {
+    const schema: SchemaExpress = {
+      type: "array",
+      path: ".tips",
+      items: {
+        type: "object",
+        path: ".",
+        properties: {
+          _id: {
+            path: ".id",
+            type: "string",
+            resolve: (v: unknown) => (Array.isArray(v) ? (v[0] ?? "") : v),
+          },
+          name: {
+            path: ".name",
+            type: "string",
+          },
+          areaCode: {
+            path: ".adcode",
+            type: "string",
+          },
+          addressName: {
+            path: ".address",
+            type: "string",
+            resolve: (v: unknown) => (Array.isArray(v) ? (v[0] ?? "") : v),
+          },
+          coordinate: {
+            path: ".location",
+            type: "array",
+            defaultValue: [0, 0],
+            resolve: (v: unknown) => (Array.isArray(v) ? (v[0] ?? "") : v).split(','),
+            items: {
+              path: '.',
+              type: 'number',
+            },
+          },
+        },
+      },
+    };
+    const data = {
+  "tips": [
+    {
+      "id": "B023E05BX1",
+      "name": "宁波天一广场",
+      "district": "浙江省宁波市海曙区",
+      "adcode": "330203",
+      "location": "121.554225,29.869432",
+      "address": "中山东路188号",
+      "typecode": "060101",
+      "city": []
+    },
+    {
+      "id": "B023E05BNE",
+      "name": "天一阁博物院",
+      "district": "浙江省宁波市海曙区",
+      "adcode": "330203",
+      "location": "121.539591,29.871055",
+      "address": "天一街10号",
+      "typecode": "110202",
+      "city": []
+    }
+  ],
+  "status": "1",
+  "info": "OK",
+  "infocode": "10000",
+  "count": "10"
+    };
+    const result = transform(schema, data) as Array<{
+      _id: string;
+      name: string;
+      areaCode: string;
+      addressName: string;
+      coordinate: number[];
+    }>;
+
+    assert.strictEqual(result.length, 2);
+    assert.strictEqual(result[0]._id, "B023E05BX1");
+    assert.strictEqual(result[0].name, "宁波天一广场");
+    assert.strictEqual(result[0].areaCode, "330203");
+    assert.strictEqual(result[0].addressName, "中山东路188号");
+    assert.deepStrictEqual(result[0].coordinate, [121.554225, 29.869432]);
+
+    assert.strictEqual(result[1]._id, "B023E05BNE");
+    assert.strictEqual(result[1].name, "天一阁博物院");
+    assert.strictEqual(result[1].areaCode, "330203");
+    assert.strictEqual(result[1].addressName, "天一街10号");
+    assert.deepStrictEqual(result[1].coordinate, [121.539591, 29.871055]);
+   });
 });
