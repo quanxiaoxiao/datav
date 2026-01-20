@@ -546,3 +546,324 @@ describe('field-dsl', () => {
     });
   });
 });
+
+describe('toString', () => {
+  it('should convert value to string without path', () => {
+    const field = toString();
+    assert.strictEqual(field.run(123), '123');
+    assert.strictEqual(field.run('hello'), 'hello');
+    assert.strictEqual(field.run(true), 'true');
+    assert.strictEqual(field.run(null), null);
+  });
+
+  it('should convert nested value to string with path', () => {
+    const field = toString('user.name');
+    const data = { user: { name: 'Alice' } };
+    assert.strictEqual(field.run(data), 'Alice');
+  });
+
+  it('should handle undefined path gracefully', () => {
+    const field = toString('missing.path');
+    const data = { user: { name: 'Alice' } };
+    assert.strictEqual(field.run(data), null);
+  });
+});
+
+describe('toNumber', () => {
+  it('should convert value to number without path', () => {
+    const field = toNumber();
+    assert.strictEqual(field.run('123'), 123);
+    assert.strictEqual(field.run(456), 456);
+    assert.strictEqual(field.run('3.14'), 3.14);
+  });
+
+  it('should convert nested value to number with path', () => {
+    const field = toNumber('user.age');
+    const data = { user: { age: '25' } };
+    assert.strictEqual(field.run(data), 25);
+  });
+});
+
+describe('toInteger', () => {
+  it('should convert value to integer without path', () => {
+    const field = toInteger();
+    assert.strictEqual(field.run('123'), 123);
+    assert.strictEqual(field.run(3.14), null);
+    assert.strictEqual(field.run(3.99), null);
+  });
+
+  it('should convert negative decimals correctly', () => {
+    const field = toInteger();
+    assert.strictEqual(field.run(-3.14), null);
+    assert.strictEqual(field.run(-3.99), null);
+  });
+});
+
+describe('toBoolean', () => {
+  it('should convert value to boolean without path', () => {
+    const field = toBoolean();
+    assert.strictEqual(field.run(true), true);
+    assert.strictEqual(field.run(false), false);
+    assert.strictEqual(field.run(1), null);
+    assert.strictEqual(field.run(0), null);
+    assert.strictEqual(field.run(''), null);
+    assert.strictEqual(field.run('hello'), null);
+  });
+
+  it('should convert nested value to boolean with path', () => {
+    const field = toBoolean('user.active');
+    const data = { user: { active: true } };
+    assert.strictEqual(field.run(data), true);
+  });
+});
+
+// ============================================================================
+// 对象转换测试
+// ============================================================================
+
+describe('toObject', () => {
+  it('should transform object without path', () => {
+    const field = toObject({
+      name: toString('name'),
+      age: toNumber('age'),
+      active: toBoolean('active'),
+    });
+
+    const data = {
+      name: 'Alice',
+      age: '25',
+      active: 'true',
+    };
+
+    const result = field.run(data);
+    assert.deepStrictEqual(result, {
+      name: 'Alice',
+      age: 25,
+      active: true,
+    });
+  });
+
+  it('should transform nested object with path', () => {
+    const field = toObject('user', {
+      name: toString('name'),
+      age: toNumber('age'),
+    });
+
+    const data = {
+      user: {
+        name: 'Bob',
+        age: '30',
+      },
+    };
+
+    const result = field.run(data);
+    assert.deepStrictEqual(result, {
+      name: 'Bob',
+      age: 30,
+    });
+  });
+
+  it('should handle nested objects', () => {
+    const field = toObject({
+      user: toObject('user', {
+        name: toString('name'),
+        age: toNumber('age'),
+      }),
+      settings: toObject('settings', {
+        theme: toString('theme'),
+      }),
+    });
+
+    const data = {
+      user: {
+        name: 'Charlie',
+        age: '35',
+      },
+      settings: {
+        theme: 'dark',
+      },
+    };
+
+    const result = field.run(data);
+    assert.deepStrictEqual(result, {
+      user: {
+        name: 'Charlie',
+        age: 35,
+      },
+      settings: {
+        theme: 'dark',
+      },
+    });
+  });
+});
+
+// ============================================================================
+// 数组转换测试
+// ============================================================================
+
+describe('toArray', () => {
+  it('should transform array of primitives without path', () => {
+    const field = toArray(toNumber());
+    const data = ['1', '2', '3'];
+    const result = field.run(data);
+    assert.deepStrictEqual(result, [1, 2, 3]);
+  });
+
+  it('should transform nested array with path', () => {
+    const field = toArray('items', toNumber());
+    const data = { items: ['10', '20', '30'] };
+    const result = field.run(data);
+    assert.deepStrictEqual(result, [10, 20, 30]);
+  });
+
+  it('should transform array of objects', () => {
+    const field = toArray(
+      toObject({
+        id: toNumber('id'),
+        name: toString('name'),
+      })
+    );
+
+    const data = [
+      { id: '1', name: 'Alice' },
+      { id: '2', name: 'Bob' },
+    ];
+
+    const result = field.run(data);
+    assert.deepStrictEqual(result, [
+      { id: 1, name: 'Alice' },
+      { id: 2, name: 'Bob' },
+    ]);
+  });
+
+  it('should handle empty arrays', () => {
+    const field = toArray(toNumber());
+    const result = field.run([]);
+    assert.deepStrictEqual(result, []);
+  });
+});
+
+// ============================================================================
+// 复杂场景测试
+// ============================================================================
+
+describe('Complex transformations', () => {
+  it('should handle nested arrays and objects', () => {
+    const field = toObject({
+      users: toArray('users', toObject({
+        name: toString('name'),
+        age: toNumber('age'),
+        tags: toArray('tags', toString()),
+      })),
+    });
+
+    const data = {
+      users: [
+        {
+          name: 'Alice',
+          age: '25',
+          tags: ['admin', 'active'],
+        },
+        {
+          name: 'Bob',
+          age: '30',
+          tags: ['user'],
+        },
+      ],
+    };
+
+    const result = field.run(data);
+    assert.deepStrictEqual(result, {
+      users: [
+        {
+          name: 'Alice',
+          age: 25,
+          tags: ['admin', 'active'],
+        },
+        {
+          name: 'Bob',
+          age: 30,
+          tags: ['user'],
+        },
+      ],
+    });
+  });
+
+  it('should handle deeply nested paths', () => {
+    const field = toObject({
+      value: toNumber('data.nested.deep.value'),
+    });
+
+    const data = {
+      data: {
+        nested: {
+          deep: {
+            value: '42',
+          },
+        },
+      },
+    };
+
+    const result = field.run(data);
+    assert.deepStrictEqual(result, { value: 42 });
+  });
+});
+
+// ============================================================================
+// compile 函数测试
+// ============================================================================
+
+describe('compile', () => {
+  it('should compile field into reusable function', () => {
+    const field = toObject({
+      name: toString('name'),
+      age: toNumber('age'),
+    });
+
+    const transform = compile(field);
+
+    const data1 = { name: 'Alice', age: '25' };
+    const data2 = { name: 'Bob', age: '30' };
+
+    assert.deepStrictEqual(transform(data1), { name: 'Alice', age: 25 });
+    assert.deepStrictEqual(transform(data2), { name: 'Bob', age: 30 });
+  });
+
+  it('should handle successful transformations', () => {
+    const field = toString();
+    const transform = compile(field);
+    assert.strictEqual(transform(123), '123');
+  });
+});
+
+// ============================================================================
+// 边界情况测试
+// ============================================================================
+
+describe('Edge cases', () => {
+  it('should handle null values', () => {
+    const field = toString();
+    assert.strictEqual(field.run(null), null);
+  });
+
+  it('should handle undefined values', () => {
+    const field = toString();
+    assert.strictEqual(field.run(undefined), null);
+  });
+
+  it('should handle empty strings', () => {
+    const field = toString();
+    assert.strictEqual(field.run(''), '');
+  });
+
+  it('should handle zero', () => {
+    const field = toNumber();
+    assert.strictEqual(field.run(0), 0);
+  });
+
+  it('should handle boolean false', () => {
+    const field = toBoolean();
+    assert.strictEqual(field.run(false), false);
+  });
+});
+
