@@ -103,8 +103,6 @@ export function toArray(arg1: string | Field<unknown>, arg2?: Field<unknown>): F
   };
 }
 
-// --- 3. Compiler (Runtime) ---
-
 type Executor<T = unknown> = (data: unknown) => T;
 
 const VALUE_TRANSFORMERS = {
@@ -114,14 +112,12 @@ const VALUE_TRANSFORMERS = {
   boolean: toBooleanValue,
 } as const;
 
-// 优化：内联简单的访问逻辑，减少函数调用栈
 const createAccessor = (path?: string) =>
   path ? createDataAccessor(path) : (v: unknown) => v;
 
 const compileValue = (node: ValueNode): Executor => {
   const accessor = createAccessor(node.path);
   const transformer = VALUE_TRANSFORMERS[node.transform];
-  // 逻辑简化：直接返回闭包，避免 compose 带来的额外一层
   return (data) => transformer(accessor(data));
 };
 
@@ -171,8 +167,6 @@ const compileAST = (node: ASTNode): Executor => {
     return compileObject(node, compileAST);
   case 'array':
     return compileArray(node, compileAST);
-  default:
-    throw new Error(`Unknown AST node kind: ${node.kind}`);
   }
 };
 

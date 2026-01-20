@@ -1,6 +1,5 @@
 import {
   DataVError,
-  type DataVErrorDetails,
   ERROR_CODES,
   type ErrorCode,
   getErrorCode,
