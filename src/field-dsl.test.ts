@@ -452,7 +452,7 @@ describe('field-dsl', () => {
     });
 
     it('应该处理数组中的所有类型转换', () => {
-      const field = toArray('data', toObject(undefined, {
+      const field = toArray('data', toObject('.', {
         flag: toBoolean('flag'),
         number: toNumber('number'),
         text: toString('text'),
