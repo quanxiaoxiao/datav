@@ -8,6 +8,14 @@ import {
   toString,
 } from './value-type.js';
 
+type ResolveContext = {
+  data: unknown;
+  rootData: unknown;
+  path: string;
+};
+
+type Resolver = (value: unknown, ctx: ResolveContext) => unknown;
+
 interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -15,7 +23,7 @@ interface ValidationResult {
 
 export type SchemaType = 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
 
-export type SchemaExpress = { path: string } & (
+export type SchemaExpress = { path: string, resolve?: Resolver } & (
   | { type: 'string' | 'number' | 'boolean' | 'integer' }
   | { type: 'object'; properties: Record<string, SchemaExpress> }
   | { type: 'array'; items: SchemaExpress }
