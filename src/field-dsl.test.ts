@@ -170,7 +170,7 @@ describe('field-dsl', () => {
     });
 
     it('空路径应该使用根数据', () => {
-      const field = toObject(undefined, {
+      const field = toObject({
         name: toString('name'),
         age: toNumber('age'),
       });
@@ -228,7 +228,7 @@ describe('field-dsl', () => {
     });
 
     it('应该处理空路径', () => {
-      const field = toArray(undefined, toNumber('value'));
+      const field = toArray(toNumber('value'));
 
       const result = field.run([
         { value: 1 },
@@ -277,7 +277,7 @@ describe('field-dsl', () => {
     });
 
     it('应该支持复合字段', () => {
-      const itemField = toObject(undefined, {
+      const itemField = toObject({
         name: toString('name'),
         value: toNumber('value'),
       });
@@ -298,7 +298,7 @@ describe('field-dsl', () => {
     });
 
     it('应该支持多维数组', () => {
-      const innerField = toArray(undefined, toString('name'));
+      const innerField = toArray(toString('name'));
       const outerField = toArray('outer', innerField);
 
       const result = outerField.run({
@@ -376,7 +376,7 @@ describe('field-dsl', () => {
   describe('复杂场景', () => {
     it('应该处理深层嵌套结构', () => {
       const field = toObject('data', {
-        users: toArray('users', toObject(undefined, {
+        users: toArray('users', toObject({
           id: toNumber('id'),
           profile: toObject('profile', {
             name: toString('name'),
@@ -474,7 +474,7 @@ describe('field-dsl', () => {
 
   describe('边界情况', () => {
     it('应该处理路径为空的字段', () => {
-      const field = toObject(undefined, {
+      const field = toObject({
         value: toNumber('value'),
       });
 
@@ -482,7 +482,7 @@ describe('field-dsl', () => {
     });
 
     it('应该处理数组路径为空的情况', () => {
-      const field = toArray(undefined, toNumber('value'));
+      const field = toArray(toNumber('value'));
 
       assert.deepStrictEqual(field.run([{ value: 1 }]), [1]);
     });
