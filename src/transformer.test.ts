@@ -273,6 +273,164 @@ describe('validateExpressSchema', () => {
       assert.ok(result.errors.some(err => err.includes('root.properties.child')));
     });
   });
+
+  describe('defaultValue validation', () => {
+    test('should accept valid string defaultValue for string type', () => {
+      const result = validateExpressSchema({
+        path: 'name',
+        type: 'string',
+        defaultValue: 'default name'
+      });
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.errors.length, 0);
+    });
+
+    test('should accept valid number defaultValue for number type', () => {
+      const result = validateExpressSchema({
+        path: 'count',
+        type: 'number',
+        defaultValue: 0
+      });
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.errors.length, 0);
+    });
+
+    test('should accept valid integer defaultValue for integer type', () => {
+      const result = validateExpressSchema({
+        path: 'quantity',
+        type: 'integer',
+        defaultValue: 1
+      });
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.errors.length, 0);
+    });
+
+    test('should accept valid boolean defaultValue for boolean type', () => {
+      const result = validateExpressSchema({
+        path: 'enabled',
+        type: 'boolean',
+        defaultValue: false
+      });
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.errors.length, 0);
+    });
+
+    test('should accept valid object defaultValue for object type', () => {
+      const result = validateExpressSchema({
+        path: 'config',
+        type: 'object',
+        properties: {},
+        defaultValue: { key: 'value' }
+      });
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.errors.length, 0);
+    });
+
+    test('should accept valid array defaultValue for array type', () => {
+      const result = validateExpressSchema({
+        path: 'items',
+        type: 'array',
+        items: { path: '.', type: 'string' },
+        defaultValue: ['default item']
+      });
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.errors.length, 0);
+    });
+
+    test('should reject string defaultValue for number type', () => {
+      const result = validateExpressSchema({
+        path: 'count',
+        type: 'number',
+        defaultValue: 'not a number'
+      });
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.errors.some(err => err.includes('defaultValue does not match type')));
+    });
+
+    test('should reject number defaultValue for string type', () => {
+      const result = validateExpressSchema({
+        path: 'name',
+        type: 'string',
+        defaultValue: 123
+      });
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.errors.some(err => err.includes('defaultValue does not match type')));
+    });
+
+    test('should reject boolean defaultValue for integer type', () => {
+      const result = validateExpressSchema({
+        path: 'flag',
+        type: 'integer',
+        defaultValue: true
+      });
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.errors.some(err => err.includes('defaultValue does not match type')));
+    });
+
+    test('should reject array defaultValue for object type (arrays are plain objects but not for schema)', () => {
+      const result = validateExpressSchema({
+        path: 'config',
+        type: 'object',
+        properties: {},
+        defaultValue: ['not', 'an', 'object']
+      });
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.errors.some(err => err.includes('defaultValue does not match type')));
+    });
+
+    test('should reject object defaultValue for array type', () => {
+      const result = validateExpressSchema({
+        path: 'items',
+        type: 'array',
+        items: { path: '.', type: 'string' },
+        defaultValue: { not: 'an array' }
+      });
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.errors.some(err => err.includes('defaultValue does not match type')));
+    });
+
+    test('should reject null defaultValue for primitive types', () => {
+      const result = validateExpressSchema({
+        path: 'value',
+        type: 'string',
+        defaultValue: null
+      });
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.errors.some(err => err.includes('defaultValue does not match type')));
+    });
+
+    test('should validate defaultValue in nested object properties', () => {
+      const schema: SchemaExpress = {
+        path: 'user',
+        type: 'object',
+        properties: {
+          name: { path: 'user.name', type: 'string', defaultValue: 'Anonymous' },
+          age: { path: 'user.age', type: 'number', defaultValue: 0 }
+        }
+      };
+      const result = validateExpressSchema(schema);
+      assert.strictEqual(result.valid, true);
+    });
+
+    test('should report defaultValue error with correct context path', () => {
+      const result = validateExpressSchema({
+        path: 'user.name',
+        type: 'string',
+        defaultValue: 123
+      });
+      assert.ok(result.errors.some(err => err.includes('[user.name]')));
+    });
+
+    test('should validate defaultValue in array items', () => {
+      const schema: SchemaExpress = {
+        path: 'tags',
+        type: 'array',
+        items: { path: 'tags[]', type: 'string', defaultValue: 'untagged' }
+      };
+      const result = validateExpressSchema(schema);
+      assert.strictEqual(result.valid, true);
+    });
+  });
 });
 
 // ============================================================================
@@ -909,6 +1067,455 @@ describe('transform', () => {
 
       const result = transform(schema, { localValue: 'test', ref: 'REF123' });
       assert.strictEqual(result, 'test (ref: REF123)');
+    });
+  });
+
+  describe('defaultValue', () => {
+    describe('Primitive types', () => {
+      test('should return defaultValue when string value is null', () => {
+        const schema: SchemaExpress = {
+          path: '.name',
+          type: 'string',
+          defaultValue: 'Anonymous'
+        };
+
+        const result = transform(schema, { name: null });
+        assert.strictEqual(result, 'Anonymous');
+      });
+
+      test('should return defaultValue when number value is null', () => {
+        const schema: SchemaExpress = {
+          path: '.price',
+          type: 'number',
+          defaultValue: 0
+        };
+
+        const result = transform(schema, { price: null });
+        assert.strictEqual(result, 0);
+      });
+
+      test('should return defaultValue when integer value is null', () => {
+        const schema: SchemaExpress = {
+          path: '.quantity',
+          type: 'integer',
+          defaultValue: 1
+        };
+
+        const result = transform(schema, { quantity: null });
+        assert.strictEqual(result, 1);
+      });
+
+      test('should return defaultValue when boolean value is null', () => {
+        const schema: SchemaExpress = {
+          path: '.enabled',
+          type: 'boolean',
+          defaultValue: false
+        };
+
+        const result = transform(schema, { enabled: null });
+        assert.strictEqual(result, false);
+      });
+
+      test('should return defaultValue when value is undefined', () => {
+        const schema: SchemaExpress = {
+          path: '.missing',
+          type: 'string',
+          defaultValue: 'fallback'
+        };
+
+        const result = transform(schema, {});
+        assert.strictEqual(result, 'fallback');
+      });
+
+      test('should return original value when value exists', () => {
+        const schema: SchemaExpress = {
+          path: '.name',
+          type: 'string',
+          defaultValue: 'Anonymous'
+        };
+
+        const result = transform(schema, { name: 'John' });
+        assert.strictEqual(result, 'John');
+      });
+
+      test('should return original value when value is empty string', () => {
+        const schema: SchemaExpress = {
+          path: '.name',
+          type: 'string',
+          defaultValue: 'Anonymous'
+        };
+
+        const result = transform(schema, { name: '' });
+        assert.strictEqual(result, '');
+      });
+
+      test('should return original value when value is 0', () => {
+        const schema: SchemaExpress = {
+          path: '.count',
+          type: 'number',
+          defaultValue: 100
+        };
+
+        const result = transform(schema, { count: 0 });
+        assert.strictEqual(result, 0);
+      });
+
+      test('should return original value when value is false', () => {
+        const schema: SchemaExpress = {
+          path: '.active',
+          type: 'boolean',
+          defaultValue: true
+        };
+
+        const result = transform(schema, { active: false });
+        assert.strictEqual(result, false);
+      });
+    });
+
+    describe('Array type', () => {
+      test('should return defaultValue when array is empty', () => {
+        const schema: SchemaExpress = {
+          path: '.tags',
+          type: 'array',
+          items: { path: '.', type: 'string' },
+          defaultValue: ['default', 'tag']
+        };
+
+        const result = transform(schema, { tags: [] });
+        assert.deepStrictEqual(result, ['default', 'tag']);
+      });
+
+      test('should return original array when array has items', () => {
+        const schema: SchemaExpress = {
+          path: '.items',
+          type: 'array',
+          items: { path: '.', type: 'string' },
+          defaultValue: ['fallback']
+        };
+
+        const result = transform(schema, { items: ['a', 'b', 'c'] });
+        assert.deepStrictEqual(result, ['a', 'b', 'c']);
+      });
+
+      test('should return defaultValue when array value is null', () => {
+        const schema: SchemaExpress = {
+          path: '.values',
+          type: 'array',
+          items: { path: '.', type: 'number' },
+          defaultValue: [1, 2, 3]
+        };
+
+        const result = transform(schema, { values: null });
+        assert.deepStrictEqual(result, [1, 2, 3]);
+      });
+
+      test('should return defaultValue when array value is missing', () => {
+        const schema: SchemaExpress = {
+          path: '.list',
+          type: 'array',
+          items: { path: '.', type: 'string' },
+          defaultValue: ['empty']
+        };
+
+        const result = transform(schema, {});
+        assert.deepStrictEqual(result, ['empty']);
+      });
+
+    test('should return defaultValue array without item transformations', () => {
+      const schema: SchemaExpress = {
+        path: '.numbers',
+        type: 'array',
+        items: { path: '.', type: 'integer' },
+        defaultValue: ['10', '20']
+      };
+
+      const result = transform(schema, { numbers: [] });
+      assert.deepStrictEqual(result, ['10', '20']);
+    });
+    });
+
+    describe('Object type', () => {
+    test('should return transformed result even when object value is null', () => {
+      const schema: SchemaExpress = {
+        path: '.config',
+        type: 'object',
+        properties: {
+          setting: { path: 'setting', type: 'string' }
+        },
+        defaultValue: { setting: 'default' }
+      };
+
+      const result = transform(schema, { config: null }) as any;
+      assert.strictEqual(result.setting, 'default');
+    });
+
+    test('should return transformed result when object value is missing', () => {
+      const schema: SchemaExpress = {
+        path: '.user',
+        type: 'object',
+        properties: {
+          name: { path: 'name', type: 'string' }
+        },
+        defaultValue: { name: 'Guest' }
+      };
+
+      const result = transform(schema, {}) as any;
+      assert.strictEqual(result.name, 'Guest');
+    });
+
+      test('should return original object when it exists', () => {
+        const schema: SchemaExpress = {
+          path: '.data',
+          type: 'object',
+          properties: {
+            value: { path: 'value', type: 'number' }
+          },
+          defaultValue: { value: 0 }
+        };
+
+        const result = transform(schema, { data: { value: 42 } });
+        assert.deepStrictEqual(result, { value: 42 });
+      });
+
+    test('should use defaultValue for object when value is null', () => {
+      const schema: SchemaExpress = {
+        path: '.item',
+        type: 'object',
+        properties: {
+          count: { path: 'count', type: 'integer', defaultValue: 0 },
+          active: { path: 'active', type: 'boolean', defaultValue: false }
+        },
+        defaultValue: { count: 5, active: true }
+      };
+
+      const result = transform(schema, { item: null }) as any;
+      assert.strictEqual(result.count, 5);
+      assert.strictEqual(result.active, true);
+    });
+    });
+
+    describe('Nested structures with defaultValue', () => {
+      test('should apply defaultValue in nested object properties', () => {
+        const schema: SchemaExpress = {
+          path: '.',
+          type: 'object',
+          properties: {
+            user: {
+              path: 'user',
+              type: 'object',
+              properties: {
+                name: { path: 'name', type: 'string', defaultValue: 'Anonymous' },
+                age: { path: 'age', type: 'number', defaultValue: 0 }
+              }
+            }
+          }
+        };
+
+        const result = transform(schema, { user: { name: null, age: null } }) as any;
+        assert.strictEqual(result.user.name, 'Anonymous');
+        assert.strictEqual(result.user.age, 0);
+      });
+
+      test('should apply defaultValue in array items', () => {
+        const schema: SchemaExpress = {
+          path: '.products',
+          type: 'array',
+          items: {
+            path: '.',
+            type: 'object',
+            properties: {
+              id: { path: 'id', type: 'integer' },
+              name: { path: 'name', type: 'string', defaultValue: 'Unnamed' }
+            }
+          },
+          defaultValue: [{ id: 0, name: 'No Products' }]
+        };
+
+        const result = transform(schema, { products: [] }) as any[];
+        assert.strictEqual(result[0].id, 0);
+        assert.strictEqual(result[0].name, 'No Products');
+      });
+
+    test('should apply defaultValue at root level for object', () => {
+      const schema: SchemaExpress = {
+        path: '.',
+        type: 'object',
+        properties: {
+          status: { path: 'status', type: 'string' }
+        },
+        defaultValue: { status: 'pending' }
+      };
+
+      const result = transform(schema, null) as any;
+      assert.strictEqual(result.status, 'pending');
+    });
+
+      test('should apply defaultValue to array at root level', () => {
+        const schema: SchemaExpress = {
+          path: '.',
+          type: 'array',
+          items: { path: '.', type: 'string' },
+          defaultValue: ['default']
+        };
+
+        const result = transform(schema, null);
+        assert.deepStrictEqual(result, ['default']);
+      });
+
+      test('should handle mixed: some properties use defaultValue', () => {
+        const schema: SchemaExpress = {
+          path: '.',
+          type: 'object',
+          properties: {
+            required: { path: 'required', type: 'string', defaultValue: 'required_value' },
+            optional: { path: 'optional', type: 'string', defaultValue: 'optional_value' }
+          }
+        };
+
+        const result = transform(schema, { required: 'provided', optional: null }) as any;
+        assert.strictEqual(result.required, 'provided');
+        assert.strictEqual(result.optional, 'optional_value');
+      });
+
+    test('should use resolved value even when falsy (not null)', () => {
+      const schema: SchemaExpress = {
+        path: '.price',
+        type: 'number',
+        resolve: (value) => (value as number) || 0,
+        defaultValue: 99.99
+      };
+
+      const result = transform(schema, { price: null });
+      assert.strictEqual(result, 0);
+    });
+
+      test('should apply defaultValue when resolve returns null', () => {
+        const schema: SchemaExpress = {
+          path: '.value',
+          type: 'string',
+          resolve: () => null as any,
+          defaultValue: 'fallback'
+        };
+
+        const result = transform(schema, { value: 'original' });
+        assert.strictEqual(result, 'fallback');
+      });
+    });
+
+    describe('Edge cases', () => {
+      test('should handle defaultValue of 0 for number type', () => {
+        const schema: SchemaExpress = {
+          path: '.count',
+          type: 'number',
+          defaultValue: 0
+        };
+
+        const result = transform(schema, { count: null });
+        assert.strictEqual(result, 0);
+      });
+
+      test('should handle defaultValue of false for boolean type', () => {
+        const schema: SchemaExpress = {
+          path: '.active',
+          type: 'boolean',
+          defaultValue: false
+        };
+
+        const result = transform(schema, { active: null });
+        assert.strictEqual(result, false);
+      });
+
+      test('should handle defaultValue of empty string for string type', () => {
+        const schema: SchemaExpress = {
+          path: '.name',
+          type: 'string',
+          defaultValue: ''
+        };
+
+        const result = transform(schema, { name: null });
+        assert.strictEqual(result, '');
+      });
+
+      test('should handle defaultValue of empty object', () => {
+        const schema: SchemaExpress = {
+          path: '.config',
+          type: 'object',
+          properties: {},
+          defaultValue: {}
+        };
+
+        const result = transform(schema, { config: null });
+        assert.deepStrictEqual(result, {});
+      });
+
+      test('should handle defaultValue of empty array', () => {
+        const schema: SchemaExpress = {
+          path: '.items',
+          type: 'array',
+          items: { path: '.', type: 'string' },
+          defaultValue: []
+        };
+
+        const result = transform(schema, { items: [] });
+        assert.deepStrictEqual(result, []);
+      });
+
+    test('should use defaultValue for child properties when original is null', () => {
+      const schema: SchemaExpress = {
+        path: '.settings',
+        type: 'object',
+        properties: {
+          theme: { path: 'theme', type: 'string', defaultValue: 'dark' },
+          language: { path: 'language', type: 'string', defaultValue: 'en' }
+        },
+        defaultValue: { theme: 'dark', language: 'en' }
+      };
+
+      const result = transform(schema, { settings: null }) as any;
+      assert.strictEqual(result.theme, 'dark');
+      assert.strictEqual(result.language, 'en');
+    });
+
+      test('should handle complex defaultValue arrays', () => {
+        const schema: SchemaExpress = {
+          path: '.tags',
+          type: 'array',
+          items: { path: '.', type: 'string' },
+          defaultValue: ['tag1', 'tag2', 'tag3']
+        };
+
+        const result = transform(schema, { tags: [] });
+        assert.deepStrictEqual(result, ['tag1', 'tag2', 'tag3']);
+      });
+
+      test('should preserve non-empty arrays even with falsy values', () => {
+        const schema: SchemaExpress = {
+          path: '.values',
+          type: 'array',
+          items: { path: '.', type: 'string' },
+          defaultValue: ['fallback']
+        };
+
+        const result = transform(schema, { values: [''] });
+        assert.deepStrictEqual(result, ['']);
+      });
+
+      test('should work with $ path reference and defaultValue', () => {
+        const schema: SchemaExpress = {
+          path: '.local',
+          type: 'string',
+          defaultValue: (() => {
+            const schema: SchemaExpress = {
+              path: '$.defaultName',
+              type: 'string'
+            };
+            return transform(schema, { defaultName: 'fromRoot' });
+          })() as string
+        };
+
+        const result = transform(schema, { local: null });
+        assert.strictEqual(result, 'fromRoot');
+      });
     });
   });
 });

@@ -167,6 +167,10 @@ const compileAST = (node: ASTNode): Executor => {
     return compileObject(node, compileAST);
   case 'array':
     return compileArray(node, compileAST);
+  default: {
+    const neverKind: never = node;
+    throw new Error(`Unhandled node kind: ${neverKind}`);
+  }
   }
 };
 

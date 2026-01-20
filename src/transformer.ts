@@ -65,7 +65,7 @@ function applyDefaultValue(
       : value;
   }
 
-  return value === null ? schema.defaultValue : value;
+  return value === null || value === undefined ? schema.defaultValue : value;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -151,6 +151,11 @@ function compileSchema(schema: SchemaExpress): Transformer {
 
     return (data, rootData) => {
       const value = readValue(accessor, schema, data, rootData);
+
+      if ((value === null || value === undefined) && schema.defaultValue !== undefined) {
+        return applyDefaultValue(value, schema);
+      }
+
       const obj = toObject(value);
       const result: Record<string, unknown> = {};
 
@@ -182,7 +187,7 @@ function isDefaultValueValid(
   case 'boolean':
     return typeof value === 'boolean';
   case 'object':
-    return isObject(value);
+    return isObject(value) && !Array.isArray(value);
   case 'array':
     return Array.isArray(value);
   default:
