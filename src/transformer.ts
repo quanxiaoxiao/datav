@@ -21,6 +21,8 @@ interface ValidationResult {
   errors: string[];
 }
 
+type Transformer = (data: unknown, rootData: unknown) => unknown;
+
 export type SchemaType = 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
 
 export type SchemaExpress = { path: string, resolve?: Resolver } & (
@@ -46,38 +48,50 @@ function isSchemaType(value: unknown): value is SchemaType {
   return VALID_TYPES.includes(value as SchemaType);
 }
 
-type Transformer = (data: unknown, rootData: unknown) => unknown;
+function readValue(
+  accessor: (data: unknown) => unknown,
+  schema: SchemaExpress,
+  data: unknown,
+  rootData: unknown,
+): unknown {
+  const raw = accessor(schema.path.includes('$') ? rootData : data);
+
+  if (!schema.resolve) {
+    return raw;
+  }
+
+  return schema.resolve(raw, {
+    data,
+    rootData,
+    path: schema.path,
+  });
+}
 
 function compileSchema(schema: SchemaExpress): Transformer {
   const accessor = createDataAccessor(schema.path);
-  const hasRootRef = schema.path.includes('$');
 
   switch (schema.type) {
   case 'string':
     return (data, rootData) => {
-      const target = hasRootRef ? rootData : data;
-      const value = accessor(target);
+      const value = readValue(accessor, schema, data, rootData);
       return toString(value);
     };
 
   case 'number':
     return (data, rootData) => {
-      const target = hasRootRef ? rootData : data;
-      const value = accessor(target);
+      const value = readValue(accessor, schema, data, rootData);
       return toNumber(value);
     };
 
   case 'integer':
     return (data, rootData) => {
-      const target = hasRootRef ? rootData : data;
-      const value = accessor(target);
+      const value = readValue(accessor, schema, data, rootData);
       return toInteger(value);
     };
 
   case 'boolean':
     return (data, rootData) => {
-      const target = hasRootRef ? rootData : data;
-      const value = accessor(target);
+      const value = readValue(accessor, schema, data, rootData);
       return toBoolean(value);
     };
 
@@ -89,29 +103,26 @@ function compileSchema(schema: SchemaExpress): Transformer {
     const itemTransform = compileSchema(itemSchema);
 
     return (data, rootData) => {
-      const target = hasRootRef ? rootData : data;
-      const arr = toArray(accessor(target));
+      const value = readValue(accessor, schema, data, rootData);
+      const arr = toArray(value);
       return arr.map((item) => itemTransform(item, rootData));
     };
   }
 
   case 'object': {
     const compiledProps: Record<string, Transformer> = {};
-    const childHasRootRef: Record<string, boolean> = {};
 
     for (const [key, childSchema] of Object.entries(schema.properties)) {
       compiledProps[key] = compileSchema(childSchema);
-      childHasRootRef[key] = childSchema.path.includes('$');
     }
 
     return (data, rootData) => {
-      const target = hasRootRef ? rootData : data;
-      const obj = toObject(accessor(target));
+      const value = readValue(accessor, schema, data, rootData);
+      const obj = toObject(value);
       const result: Record<string, unknown> = {};
 
       for (const key in compiledProps) {
-        const childTarget = childHasRootRef[key] ? rootData : (obj ?? {});
-        result[key] = compiledProps[key](childTarget, rootData);
+        result[key] = compiledProps[key](obj ?? {}, rootData);
       }
 
       return result;
