@@ -11,6 +11,18 @@ import {
 // ============================================================================
 // 类型定义
 // ============================================================================
+interface TransformError extends Error {
+  path?: string;
+}
+
+function withPath(error: unknown, path: string): TransformError {
+  const err = error instanceof Error ? error : new Error(String(error));
+  const wrapped = new Error(err.message) as TransformError;
+  wrapped.path = wrapped.path
+    ? `${path}.${wrapped.path}`
+    : path;
+  return wrapped;
+}
 
 export interface Field<T = unknown> {
   run(data: unknown): T;
@@ -44,11 +56,6 @@ function createField<T>(
       return transform(accessor(data));
     },
   };
-}
-
-function wrapError(error: unknown, prefix: string): Error {
-  const message = error instanceof Error ? error.message : String(error);
-  return new Error(`${prefix} -> ${message}`);
 }
 
 // ============================================================================
@@ -97,7 +104,7 @@ export function toObject<T extends FieldSchema>(
       try {
         result[key as string] = field.run(source);
       } catch (error) {
-        throw wrapError(error, String(key));
+        throw withPath(error, String(key));
       }
     }
 
@@ -130,7 +137,7 @@ export function toArray<T extends Field>(
       try {
         result.push(field.run(arr[i]) as TypeOf<T>);
       } catch (error) {
-        throw wrapError(error, `[${i}]`);
+        throw withPath(error, String(`[${i}]`));
       }
     }
 
@@ -149,8 +156,12 @@ export function compile<T>(field: Field<T>): (data: unknown) => T {
     try {
       return field.run(data);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Transformation Failed: ${message}`);
+      if (error instanceof Error && 'path' in error) {
+        throw new Error(
+          `Transformation Failed at ${error.path}: ${error.message}`,
+        );
+      }
+      throw error;
     }
   };
 }
