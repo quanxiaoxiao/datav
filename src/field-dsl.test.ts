@@ -3,7 +3,6 @@ import { describe, it } from 'node:test';
 
 import {
   Field,
-  Infer,
   toString,
   toNumber,
   toInteger,
@@ -13,70 +12,30 @@ import {
   compile,
 } from './field-dsl.js';
 
+function run<T>(field: Field<T>, data: unknown): T {
+  return compile(field)(data);
+}
+
 describe('field-dsl', () => {
-  // ============================================================================
-  // 类型系统测试
-  // ============================================================================
-  describe('类型系统', () => {
-    it('Infer 应该正确推导基础 Field 类型', () => {
-      type StringField = Field<string>;
-      type NumberField = Field<number>;
-      type BooleanField = Field<boolean>;
 
-      type InferredString = Infer<StringField>;
-      type InferredNumber = Infer<NumberField>;
-      type InferredBoolean = Infer<BooleanField>;
-
-      assert.strictEqual<InferredString>('test' satisfies InferredString, 'test');
-      assert.strictEqual<InferredNumber>((42 as number) satisfies InferredNumber, 42);
-      assert.strictEqual<InferredBoolean>(true satisfies InferredBoolean, true);
-    });
-
-    it('Infer 应该推导复合类型', () => {
-      const stringField = toString('name');
-      const numberField = toNumber('age');
-
-      type StringFieldType = Infer<typeof stringField>;
-      type NumberFieldType = Infer<typeof numberField>;
-
-      assert.strictEqual<StringFieldType>('John' satisfies StringFieldType, 'John');
-      assert.strictEqual<NumberFieldType>(42 satisfies NumberFieldType, 42);
-    });
-
-    it('Infer 应该推导对象和数组类型', () => {
-      const objectField = toObject({ name: toString('name') });
-      const arrayField = toArray(toString());
-
-      type ObjectType = Infer<typeof objectField>;
-      type ArrayType = Infer<typeof arrayField>;
-
-      const obj: ObjectType = { name: 'test' };
-      const arr: ArrayType = ['a', 'b'];
-
-      assert.ok(obj);
-      assert.ok(arr);
-    });
-  });
-
-  // ============================================================================
   // toString 测试
   // ============================================================================
   describe('toString', () => {
     describe('基础功能', () => {
       it('应该提取字符串字段', () => {
         const field = toString('name');
-        assert.strictEqual(field.run({ name: 'Alice' }), 'Alice');
+        assert.strictEqual(run(field, { name: 'Alice' }), 'Alice');
       });
 
       it('应该处理空路径', () => {
         const field = toString();
-        assert.strictEqual(field.run('test'), 'test');
+        assert.strictEqual(run(field, 'test'), 'test');
       });
 
       it('应该处理嵌套路径', () => {
         const field = toString('user.profile.name');
         assert.strictEqual(
-          field.run({ user: { profile: { name: 'Bob' } } }),
+          run(field, { user: { profile: { name: 'Bob' } } }),
           'Bob'
         );
       });
@@ -84,7 +43,7 @@ describe('field-dsl', () => {
       it('应该处理数组索引路径', () => {
         const field = toString('users.0.name');
         assert.strictEqual(
-          field.run({ users: [{ name: 'Charlie' }, { name: 'David' }] }),
+          run(field, { users: [{ name: 'Charlie' }, { name: 'David' }] }),
           'Charlie'
         );
       });
@@ -92,7 +51,7 @@ describe('field-dsl', () => {
       it('应该处理多级数组索引', () => {
         const field = toString('matrix.0.1.value');
         assert.strictEqual(
-          field.run({ matrix: [[{ value: 'a' }, { value: 'b' }]] }),
+          run(field, { matrix: [[{ value: 'a' }, { value: 'b' }]] }),
           'b'
         );
       });
@@ -101,60 +60,60 @@ describe('field-dsl', () => {
     describe('类型转换', () => {
       it('应该将数字转换为字符串', () => {
         const field = toString('value');
-        assert.strictEqual(field.run({ value: 123 }), '123');
-        assert.strictEqual(field.run({ value: 0 }), '0');
-        assert.strictEqual(field.run({ value: -456 }), '-456');
-        assert.strictEqual(field.run({ value: 3.14 }), '3.14');
+        assert.strictEqual(run(field, { value: 123 }), '123');
+        assert.strictEqual(run(field, { value: 0 }), '0');
+        assert.strictEqual(run(field, { value: -456 }), '-456');
+        assert.strictEqual(run(field, { value: 3.14 }), '3.14');
       });
 
       it('应该将布尔值转换为字符串', () => {
         const field = toString('value');
-        assert.strictEqual(field.run({ value: true }), 'true');
-        assert.strictEqual(field.run({ value: false }), 'false');
+        assert.strictEqual(run(field, { value: true }), 'true');
+        assert.strictEqual(run(field, { value: false }), 'false');
       });
 
       it('应该将对象转换为字符串', () => {
         const field = toString('value');
-        assert.strictEqual(field.run({ value: {} }), '[object Object]');
-        assert.strictEqual(field.run({ value: [] }), '');
+        assert.strictEqual(run(field, { value: {} }), '[object Object]');
+        assert.strictEqual(run(field, { value: [] }), '');
       });
     });
 
     describe('边界情况', () => {
       it('路径不存在时返回 null', () => {
         const field = toString('missing');
-        assert.strictEqual(field.run({ name: 'test' }), null);
+        assert.strictEqual(run(field, { name: 'test' }), null);
       });
 
       it('应该处理 null 值', () => {
         const field = toString('value');
-        assert.strictEqual(field.run({ value: null }), null);
+        assert.strictEqual(run(field, { value: null }), null);
       });
 
       it('应该处理 undefined 值', () => {
         const field = toString('value');
-        assert.strictEqual(field.run({ value: undefined }), null);
+        assert.strictEqual(run(field, { value: undefined }), null);
       });
 
       it('应该处理空字符串', () => {
         const field = toString('value');
-        assert.strictEqual(field.run({ value: '' }), '');
+        assert.strictEqual(run(field, { value: '' }), '');
       });
 
       it('应该处理包含特殊字符的路径', () => {
         const field = toString('user-name');
-        assert.strictEqual(field.run({ 'user-name': 'test' }), 'test');
+        assert.strictEqual(run(field, { 'user-name': 'test' }), 'test');
       });
 
       it('应该处理数字开头的键名', () => {
         const field = toString('0name');
-        assert.strictEqual(field.run({ '0name': 'test' }), 'test');
+        assert.strictEqual(run(field, { '0name': 'test' }), 'test');
       });
 
       it('应该处理中间路径为 null 的情况', () => {
         const field = toString('a.b.c');
-        assert.strictEqual(field.run({ a: null }), null);
-        assert.strictEqual(field.run({ a: { b: null } }), null);
+        assert.strictEqual(run(field, { a: null }), null);
+        assert.strictEqual(run(field, { a: { b: null } }), null);
       });
     });
   });
@@ -166,82 +125,82 @@ describe('field-dsl', () => {
     describe('基础功能', () => {
       it('应该提取数字字段', () => {
         const field = toNumber('count');
-        assert.strictEqual(field.run({ count: 42 }), 42);
+        assert.strictEqual(run(field, { count: 42 }), 42);
       });
 
       it('应该处理空路径', () => {
         const field = toNumber();
-        assert.strictEqual(field.run(42), 42);
+        assert.strictEqual(run(field, 42), 42);
       });
 
       it('应该处理嵌套路径', () => {
         const field = toNumber('data.price');
-        assert.strictEqual(field.run({ data: { price: 99.99 } }), 99.99);
+        assert.strictEqual(run(field, { data: { price: 99.99 } }), 99.99);
       });
     });
 
     describe('类型转换', () => {
       it('应该将字符串转换为数字', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: '123' }), 123);
-        assert.strictEqual(field.run({ value: '3.14' }), 3.14);
-        assert.strictEqual(field.run({ value: '-456' }), -456);
+        assert.strictEqual(run(field, { value: '123' }), 123);
+        assert.strictEqual(run(field, { value: '3.14' }), 3.14);
+        assert.strictEqual(run(field, { value: '-456' }), -456);
       });
 
       it('应该处理科学计数法', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: '1e3' }), 1000);
-        assert.strictEqual(field.run({ value: '1.5e2' }), 150);
+        assert.strictEqual(run(field, { value: '1e3' }), 1000);
+        assert.strictEqual(run(field, { value: '1.5e2' }), 150);
       });
 
       it('应该处理前后空格', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: '  123  ' }), 123);
+        assert.strictEqual(run(field, { value: '  123  ' }), 123);
       });
     });
 
     describe('无效输入', () => {
       it('无效字符串应该返回 null', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: 'abc' }), null);
-        assert.strictEqual(field.run({ value: '12.34.56' }), null);
-        assert.strictEqual(field.run({ value: '12abc' }), null);
+        assert.strictEqual(run(field, { value: 'abc' }), null);
+        assert.strictEqual(run(field, { value: '12.34.56' }), null);
+        assert.strictEqual(run(field, { value: '12abc' }), null);
       });
 
       it('应该处理特殊值', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: NaN }), null);
-        assert.strictEqual(field.run({ value: Infinity }), null);
-        assert.strictEqual(field.run({ value: -Infinity }), null);
+        assert.strictEqual(run(field, { value: NaN }), null);
+        assert.strictEqual(run(field, { value: Infinity }), null);
+        assert.strictEqual(run(field, { value: -Infinity }), null);
       });
 
       it('应该处理布尔值', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: true }), null);
-        assert.strictEqual(field.run({ value: false }), null);
+        assert.strictEqual(run(field, { value: true }), null);
+        assert.strictEqual(run(field, { value: false }), null);
       });
     });
 
     describe('边界情况', () => {
       it('应该处理 0', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: 0 }), 0);
-        assert.strictEqual(field.run({ value: '0' }), 0);
+        assert.strictEqual(run(field, { value: 0 }), 0);
+        assert.strictEqual(run(field, { value: '0' }), 0);
       });
 
       it('应该处理负零', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: -0 }), -0);
+        assert.strictEqual(run(field, { value: -0 }), -0);
       });
 
       it('应该处理非常大的数字', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: Number.MAX_SAFE_INTEGER }), Number.MAX_SAFE_INTEGER);
+        assert.strictEqual(run(field, { value: Number.MAX_SAFE_INTEGER }), Number.MAX_SAFE_INTEGER);
       });
 
       it('应该处理非常小的数字', () => {
         const field = toNumber('value');
-        assert.strictEqual(field.run({ value: Number.MIN_VALUE }), Number.MIN_VALUE);
+        assert.strictEqual(run(field, { value: Number.MIN_VALUE }), Number.MIN_VALUE);
       });
     });
   });
@@ -253,72 +212,72 @@ describe('field-dsl', () => {
     describe('基础功能', () => {
       it('应该提取整数字段', () => {
         const field = toInteger('count');
-        assert.strictEqual(field.run({ count: 42 }), 42);
+        assert.strictEqual(run(field, { count: 42 }), 42);
       });
 
       it('应该处理空路径', () => {
         const field = toInteger();
-        assert.strictEqual(field.run(42), 42);
+        assert.strictEqual(run(field, 42), 42);
       });
 
       it('应该处理负数', () => {
         const field = toInteger('value');
-        assert.strictEqual(field.run({ value: -456 }), -456);
-        assert.strictEqual(field.run({ value: '-789' }), -789);
+        assert.strictEqual(run(field, { value: -456 }), -456);
+        assert.strictEqual(run(field, { value: '-789' }), -789);
       });
 
       it('应该处理 0', () => {
         const field = toInteger('value');
-        assert.strictEqual(field.run({ value: 0 }), 0);
-        assert.strictEqual(field.run({ value: '0' }), 0);
+        assert.strictEqual(run(field, { value: 0 }), 0);
+        assert.strictEqual(run(field, { value: '0' }), 0);
       });
     });
 
     describe('类型转换', () => {
       it('应该将字符串转换为整数', () => {
         const field = toInteger('value');
-        assert.strictEqual(field.run({ value: '123' }), 123);
-        assert.strictEqual(field.run({ value: '-456' }), -456);
+        assert.strictEqual(run(field, { value: '123' }), 123);
+        assert.strictEqual(run(field, { value: '-456' }), -456);
       });
 
       it('应该处理前后空格', () => {
         const field = toInteger('value');
-        assert.strictEqual(field.run({ value: '  123  ' }), null);
+        assert.strictEqual(run(field, { value: '  123  ' }), null);
       });
     });
 
     describe('浮点数处理', () => {
       it('浮点数应该返回 null', () => {
         const field = toInteger('value');
-        assert.strictEqual(field.run({ value: 3.14 }), null);
-        assert.strictEqual(field.run({ value: '3.14' }), null);
-        assert.strictEqual(field.run({ value: -3.14 }), null);
-        assert.strictEqual(field.run({ value: '-3.14' }), null);
+        assert.strictEqual(run(field, { value: 3.14 }), null);
+        assert.strictEqual(run(field, { value: '3.14' }), null);
+        assert.strictEqual(run(field, { value: -3.14 }), null);
+        assert.strictEqual(run(field, { value: '-3.14' }), null);
       });
 
       it('应该拒绝看起来像整数的浮点数', () => {
         const field = toInteger('value');
-        // assert.strictEqual(field.run({ value: 3.0 }), null);
-        assert.strictEqual(field.run({ value: '3.0' }), null);
+        // assert.strictEqual(run(field, { value: 3.0 }), null);
+        assert.strictEqual(run(field, { value: '3.0' }), null);
       });
     });
 
     describe('无效输入', () => {
       it('应该拒绝非数字字符串', () => {
         const field = toInteger('value');
-        assert.strictEqual(field.run({ value: 'abc' }), null);
-        assert.strictEqual(field.run({ value: '12abc' }), null);
+        assert.strictEqual(run(field, { value: 'abc' }), null);
+        assert.strictEqual(run(field, { value: '12abc' }), null);
       });
 
       it('应该拒绝科学计数法', () => {
         const field = toInteger('value');
-        assert.strictEqual(field.run({ value: '1e3' }), null);
+        assert.strictEqual(run(field, { value: '1e3' }), null);
       });
 
       it('应该处理布尔值', () => {
         const field = toInteger('value');
-        assert.strictEqual(field.run({ value: true }), null);
-        assert.strictEqual(field.run({ value: false }), null);
+        assert.strictEqual(run(field, { value: true }), null);
+        assert.strictEqual(run(field, { value: false }), null);
       });
     });
   });
@@ -330,47 +289,47 @@ describe('field-dsl', () => {
     describe('基础功能', () => {
       it('应该提取布尔字段', () => {
         const field = toBoolean('enabled');
-        assert.strictEqual(field.run({ enabled: true }), true);
-        assert.strictEqual(field.run({ enabled: false }), false);
+        assert.strictEqual(run(field, { enabled: true }), true);
+        assert.strictEqual(run(field, { enabled: false }), false);
       });
 
       it('应该处理空路径', () => {
         const field = toBoolean();
-        assert.strictEqual(field.run(true), true);
-        assert.strictEqual(field.run(false), false);
+        assert.strictEqual(run(field, true), true);
+        assert.strictEqual(run(field, false), false);
       });
     });
 
     describe('字符串转换', () => {
       it('应该转换 "true" 和 "false"', () => {
         const field = toBoolean('flag');
-        assert.strictEqual(field.run({ flag: 'true' }), true);
-        assert.strictEqual(field.run({ flag: 'false' }), false);
+        assert.strictEqual(run(field, { flag: 'true' }), true);
+        assert.strictEqual(run(field, { flag: 'false' }), false);
       });
 
       it('应该处理大小写变体', () => {
         const field = toBoolean('flag');
-        assert.strictEqual(field.run({ flag: 'TRUE' }), null);
-        assert.strictEqual(field.run({ flag: 'True' }), null);
-        assert.strictEqual(field.run({ flag: 'FALSE' }), null);
+        assert.strictEqual(run(field, { flag: 'TRUE' }), null);
+        assert.strictEqual(run(field, { flag: 'True' }), null);
+        assert.strictEqual(run(field, { flag: 'FALSE' }), null);
       });
     });
 
     describe('无效输入', () => {
       it('无效值应该返回 null', () => {
         const field = toBoolean('value');
-        assert.strictEqual(field.run({ value: 'yes' }), null);
-        assert.strictEqual(field.run({ value: 'no' }), null);
-        assert.strictEqual(field.run({ value: 1 }), null);
-        assert.strictEqual(field.run({ value: 0 }), null);
-        assert.strictEqual(field.run({ value: '' }), null);
-        assert.strictEqual(field.run({ value: 'hello' }), null);
+        assert.strictEqual(run(field, { value: 'yes' }), null);
+        assert.strictEqual(run(field, { value: 'no' }), null);
+        assert.strictEqual(run(field, { value: 1 }), null);
+        assert.strictEqual(run(field, { value: 0 }), null);
+        assert.strictEqual(run(field, { value: '' }), null);
+        assert.strictEqual(run(field, { value: 'hello' }), null);
       });
 
       it('应该拒绝对象和数组', () => {
         const field = toBoolean('value');
-        assert.strictEqual(field.run({ value: {} }), null);
-        assert.strictEqual(field.run({ value: [] }), null);
+        assert.strictEqual(run(field, { value: {} }), null);
+        assert.strictEqual(run(field, { value: [] }), null);
       });
     });
   });
@@ -386,7 +345,7 @@ describe('field-dsl', () => {
           age: toNumber('age'),
         });
 
-        const result = field.run({
+        const result = run(field, {
           user: { name: 'Alice', age: 30 },
         });
 
@@ -399,13 +358,13 @@ describe('field-dsl', () => {
           age: toNumber('age'),
         });
 
-        const result = field.run({ name: 'Charlie', age: 25 });
+        const result = run(field, { name: 'Charlie', age: 25 });
         assert.deepStrictEqual(result, { name: 'Charlie', age: 25 });
       });
 
       it('应该处理单字段对象', () => {
         const field = toObject({ name: toString('name') });
-        const result = field.run({ name: 'Test' });
+        const result = run(field, { name: 'Test' });
         assert.deepStrictEqual(result, { name: 'Test' });
       });
     });
@@ -418,7 +377,7 @@ describe('field-dsl', () => {
           }),
         });
 
-        const result = field.run({
+        const result = run(field, {
           data: { user: { name: 'Bob' } },
         });
 
@@ -434,7 +393,7 @@ describe('field-dsl', () => {
           }),
         });
 
-        const result = field.run({ a: { b: { c: 'deep' } } });
+        const result = run(field, { a: { b: { c: 'deep' } } });
         assert.deepStrictEqual(result, {
           level1: { level2: { level3: 'deep' } },
         });
@@ -449,7 +408,7 @@ describe('field-dsl', () => {
           name: toString('name'),
         });
 
-        const result = field.run({
+        const result = run(field, {
           config: { count: '42', enabled: 'true', name: 123 },
         });
 
@@ -461,7 +420,7 @@ describe('field-dsl', () => {
           value: toNumber('value2'),
         });
 
-        const result = field.run({ obj: { value2: 100 } });
+        const result = run(field, { obj: { value2: 100 } }) as { value: number };
         assert.strictEqual(typeof result.value, 'number');
       });
     });
@@ -472,7 +431,7 @@ describe('field-dsl', () => {
           name: toString('name'),
         });
 
-        const result = field.run({ data: null });
+        const result = run(field, { data: null });
         assert.deepStrictEqual(result, { name: null });
       });
 
@@ -481,7 +440,7 @@ describe('field-dsl', () => {
           name: toString('name'),
         });
 
-        const result = field.run({ data: {} });
+        const result = run(field, { data: {} });
         assert.deepStrictEqual(result, { name: null });
       });
 
@@ -492,7 +451,7 @@ describe('field-dsl', () => {
           c: toBoolean('c'),
         });
 
-        const result = field.run({ a: 'test' });
+        const result = run(field, { a: 'test' });
         assert.deepStrictEqual(result, { a: 'test', b: null, c: null });
       });
 
@@ -502,7 +461,7 @@ describe('field-dsl', () => {
           b: toNumber('missing2'),
         });
 
-        const result = field.run({});
+        const result = run(field, {});
         assert.deepStrictEqual(result, { a: null, b: null });
       });
     });
@@ -516,7 +475,7 @@ describe('field-dsl', () => {
       it('应该将数据转换为数组', () => {
         const field = toArray('items', toString('name'));
 
-        const result = field.run({
+        const result = run(field, {
           items: [
             { name: 'Apple' },
             { name: 'Banana' },
@@ -529,7 +488,7 @@ describe('field-dsl', () => {
       it('应该处理空路径', () => {
         const field = toArray(toNumber('value'));
 
-        const result = field.run([
+        const result = run(field, [
           { value: 1 },
           { value: 2 },
         ]);
@@ -539,7 +498,7 @@ describe('field-dsl', () => {
 
       it('应该处理原始值数组', () => {
         const field = toArray(toString());
-        const result = field.run([1, 2, 3]);
+        const result = run(field, [1, 2, 3]);
         assert.deepStrictEqual(result, ['1', '2', '3']);
       });
     });
@@ -548,7 +507,7 @@ describe('field-dsl', () => {
       it('应该处理嵌套路径', () => {
         const field = toArray('data.list', toString('info.name'));
 
-        const result = field.run({
+        const result = run(field, {
           data: {
             list: [
               { info: { name: 'First' } },
@@ -564,7 +523,7 @@ describe('field-dsl', () => {
         const innerField = toArray(toString('name'));
         const outerField = toArray('outer', innerField);
 
-        const result = outerField.run({
+        const result = run(outerField, {
           outer: [
             [{ name: 'A1' }, { name: 'A2' }],
             [{ name: 'B1' }],
@@ -579,7 +538,7 @@ describe('field-dsl', () => {
         const level2 = toArray(level1);
         const level3 = toArray(level2);
 
-        const result = level3.run([
+        const result = run(level3, [
           [
             ['a', 'b'],
             ['c'],
@@ -594,7 +553,7 @@ describe('field-dsl', () => {
       it('应该进行类型转换', () => {
         const field = toArray('items', toNumber('count'));
 
-        const result = field.run({
+        const result = run(field, {
           items: [
             { count: '10' },
             { count: '20' },
@@ -612,7 +571,7 @@ describe('field-dsl', () => {
 
         const field = toArray('data', itemField);
 
-        const result = field.run({
+        const result = run(field, {
           data: [
             { name: 'A', value: 1 },
             { name: 'B', value: 2 },
@@ -629,28 +588,28 @@ describe('field-dsl', () => {
     describe('边界情况', () => {
       it('应该处理空数组', () => {
         const field = toArray('items', toString('name'));
-        assert.deepStrictEqual(field.run({ items: [] }), []);
+        assert.deepStrictEqual(run(field, { items: [] }), []);
       });
 
       it('应该处理 null 输入', () => {
         const field = toArray('items', toString('name'));
-        assert.deepStrictEqual(field.run({ items: null }), []);
+        assert.deepStrictEqual(run(field, { items: null }), []);
       });
 
       it('应该处理 undefined 输入', () => {
         const field = toArray('items', toString('name'));
-        assert.deepStrictEqual(field.run({ items: undefined }), []);
+        assert.deepStrictEqual(run(field, { items: undefined }), []);
       });
 
       it('应该处理包含 null 元素的数组', () => {
         const field = toArray(toString('name'));
-        const result = field.run([{ name: 'A' }, null, { name: 'B' }]);
+        const result = run(field, [{ name: 'A' }, null, { name: 'B' }]);
         assert.deepStrictEqual(result, ['A', null, 'B']);
       });
 
       it('应该处理单元素数组', () => {
         const field = toArray(toString());
-        const result = field.run(['single']);
+        const result = run(field, ['single']);
         assert.deepStrictEqual(result, ['single']);
       });
     });
@@ -792,7 +751,7 @@ describe('field-dsl', () => {
         })),
       });
 
-      const result = field.run({
+      const result = run(field, {
         data: {
           users: [
             {
@@ -841,7 +800,7 @@ describe('field-dsl', () => {
         ratio: toNumber('ratio'),
       });
 
-      const result = field.run({
+      const result = run(field, {
         config: {
           enabled: 'true',
           count: '100',
@@ -865,7 +824,7 @@ describe('field-dsl', () => {
         text: toString('text'),
       }));
 
-      const result = field.run({
+      const result = run(field, {
         data: [
           { flag: 'true', number: '1', text: 'one' },
           { flag: 'false', number: '2', text: 'two' },
@@ -887,7 +846,7 @@ describe('field-dsl', () => {
         })),
       });
 
-      const result = field.run({
+      const result = run(field, {
         users: [
           {
             name: 'Alice',
@@ -923,7 +882,7 @@ describe('field-dsl', () => {
         value: toNumber('data.nested.deep.value'),
       });
 
-      const result = field.run({
+      const result = run(field, {
         data: {
           nested: {
             deep: {
@@ -949,7 +908,7 @@ describe('field-dsl', () => {
         })),
       });
 
-      const result = field.run({
+      const result = run(field, {
         metadata: {
           id: '12345',
           timestamp: '1609459200.5',
@@ -978,7 +937,7 @@ describe('field-dsl', () => {
         value: toNumber('value'),
       }));
 
-      const result = field.run({
+      const result = run(field, {
         data: [
           { id: '1', value: '10' },
           { id: '2.5', value: 'invalid' }, // id 是浮点数，value 无效
@@ -1002,7 +961,7 @@ describe('field-dsl', () => {
       const obj: any = { name: 'test', value: 42 };
       obj.self = obj; // 循环引用
 
-      const result = field.run(obj);
+      const result = run(field, obj);
       assert.deepStrictEqual(result, { name: 'test', value: 42 });
     });
 
@@ -1019,7 +978,7 @@ describe('field-dsl', () => {
         }),
       });
 
-      const result = field.run({
+      const result = run(field, {
         a: {
           b: {
             c: {
@@ -1049,37 +1008,43 @@ describe('field-dsl', () => {
   // Field 接口测试
   // ============================================================================
   describe('Field 接口', () => {
-    it('Field.run 应该返回正确类型', () => {
+    it('Field.build 应该返回 Resolver', () => {
       const field: Field<string> = {
-        run: (data: unknown) => String(data),
+        build() {
+          return { kind: 'value', transformName: 'string' };
+        },
       };
 
-      assert.strictEqual(field.run('hello'), 'hello');
-      assert.strictEqual(field.run(123), '123');
+      const fn = compile(field);
+      assert.strictEqual(fn('hello'), 'hello');
+      assert.strictEqual(fn(123), '123');
     });
 
     it('应该支持自定义 Field 实现', () => {
       const customField: Field<number> = {
-        run: (data: unknown) => {
-          const obj = data as { value: number };
-          return obj.value * 2;
+        build() {
+          return {
+            kind: 'value',
+            path: 'value',
+            transformName: 'number',
+          };
         },
       };
 
-      assert.strictEqual(customField.run({ value: 21 }), 42);
+      const fn = compile(customField);
+      assert.strictEqual(fn({ value: 21 }), 21);
     });
 
     it('应该支持组合自定义 Field', () => {
       const doubleField: Field<number> = {
-        run: (data: unknown) => {
-          const num = data as number;
-          return num * 2;
+        build() {
+          return { kind: 'value', transformName: 'number' };
         },
       };
 
       const field = toArray('values', doubleField);
-      const result = field.run({ values: [1, 2, 3] });
-      assert.deepStrictEqual(result, [2, 4, 6]);
+      const result = run(field, { values: [1, 2, 3] });
+      assert.deepStrictEqual(result, [1, 2, 3]);
     });
   });
 
@@ -1089,14 +1054,14 @@ describe('field-dsl', () => {
   describe('边界情况和错误处理', () => {
     it('应该处理路径为空字符串', () => {
       const field = toString('');
-      const result = field.run({ '': 'empty key' });
+      const result = run(field, { '': 'empty key' });
       // assert.strictEqual(result, 'empty key');
     });
 
     it('应该处理路径中包含点号的键', () => {
       const field = toString('user.name');
-      const result1 = field.run({ user: { name: 'nested' } });
-      const result2 = field.run({ 'user.name': 'flat' });
+      const result1 = run(field, { user: { name: 'nested' } });
+      const result2 = run(field, { 'user.name': 'flat' });
 
       assert.strictEqual(result1, 'nested');
       // 如果实现支持扁平键，这里应该测试
@@ -1104,19 +1069,19 @@ describe('field-dsl', () => {
 
     it('应该处理数组索引越界', () => {
       const field = toString('items.10.name');
-      const result = field.run({ items: [{ name: 'a' }] });
+      const result = run(field, { items: [{ name: 'a' }] });
       assert.strictEqual(result, null);
     });
 
     it('应该处理负数数组索引', () => {
       const field = toString('items.-1.name');
-      const result = field.run({ items: [{ name: 'a' }] });
+      const result = run(field, { items: [{ name: 'a' }] });
       assert.strictEqual(result, 'a');
     });
 
     it('应该处理非数组使用数组索引', () => {
       const field = toString('user.0');
-      const result = field.run({ user: 'not an array' });
+      const result = run(field, { user: 'not an array' });
       assert.strictEqual(result, null);
     });
 
@@ -1125,9 +1090,9 @@ describe('field-dsl', () => {
       const integerField = toInteger('value');
       const stringField = toString('value');
 
-      assert.strictEqual(numberField.run({ value: 0 }), 0);
-      assert.strictEqual(integerField.run({ value: 0 }), 0);
-      assert.strictEqual(stringField.run({ value: 0 }), '0');
+      assert.strictEqual(run(numberField, { value: 0 }), 0);
+      assert.strictEqual(run(integerField, { value: 0 }), 0);
+      assert.strictEqual(run(stringField, { value: 0 }), '0');
     });
 
     it('应该处理值为空字符串的各种情况', () => {
@@ -1135,16 +1100,16 @@ describe('field-dsl', () => {
       const numberField = toNumber('value');
       const booleanField = toBoolean('value');
 
-      assert.strictEqual(stringField.run({ value: '' }), '');
-      assert.strictEqual(numberField.run({ value: '' }), null);
-      assert.strictEqual(booleanField.run({ value: '' }), null);
+      assert.strictEqual(run(stringField, { value: '' }), '');
+      assert.strictEqual(run(numberField, { value: '' }), null);
+      assert.strictEqual(run(booleanField, { value: '' }), null);
     });
 
     /*
     it('应该处理原型污染保护', () => {
       const field = toString('__proto__.polluted');
       const data = JSON.parse('{"__proto__": {"polluted": "value"}}');
-      const result = field.run(data);
+      const result = run(field, data);
       // 应该安全处理，不会污染原型
       assert.strictEqual(result, null);
     });
@@ -1152,7 +1117,7 @@ describe('field-dsl', () => {
 
     it('应该处理 constructor 键', () => {
       const field = toString('constructor');
-      const result = field.run({ constructor: 'safe' });
+      const result = run(field, { constructor: 'safe' });
       // 应该能安全访问而不返回函数
       assert.strictEqual(typeof result, 'string');
     });
@@ -1160,7 +1125,7 @@ describe('field-dsl', () => {
     it('应该处理超大数组', () => {
       const field = toArray(toNumber());
       const largeArray = new Array(10000).fill('42');
-      const result = field.run(largeArray);
+      const result = run(field, largeArray) as number[];
       assert.strictEqual(result.length, 10000);
       assert.strictEqual(result[0], 42);
       assert.strictEqual(result[9999], 42);
@@ -1174,7 +1139,7 @@ describe('field-dsl', () => {
 
       let path = 'nested.'.repeat(100) + 'value';
       const field = toString(path);
-      const result = field.run(deepObj);
+      const result = run(field, deepObj);
       assert.strictEqual(result, 'deep');
     });
 
@@ -1185,7 +1150,7 @@ describe('field-dsl', () => {
         c: toBoolean('c'),
       });
 
-      const result = field.run({
+      const result = run(field, {
         a: null,
         b: undefined,
         c: null,
@@ -1197,34 +1162,34 @@ describe('field-dsl', () => {
     it('应该处理 Symbol 类型', () => {
       const sym = Symbol('test');
       const field = toString('value');
-      const result = field.run({ value: sym });
+      const result = run(field, { value: sym });
       assert.strictEqual(result, 'Symbol(test)');
     });
 
     it('应该处理 BigInt 类型', () => {
       const field = toString('value');
-      const result = field.run({ value: BigInt(12345) });
+      const result = run(field, { value: BigInt(12345) });
       assert.strictEqual(result, '12345');
     });
 
     it('应该处理 Date 对象', () => {
       const date = new Date('2024-01-01');
       const field = toString('value');
-      const result = field.run({ value: date });
+      const result = run(field, { value: date }) as string;
       assert.ok(result?.includes('2024'));
     });
 
     it('应该处理 RegExp 对象', () => {
       const regex = /test/g;
       const field = toString('value');
-      const result = field.run({ value: regex });
+      const result = run(field, { value: regex });
       assert.strictEqual(result, '/test/g');
     });
 
     it('应该处理函数值', () => {
       const func = () => 'test';
       const field = toString('value');
-      const result = field.run({ value: func });
+      const result = run(field, { value: func });
       assert.ok(typeof result === 'string');
     });
   });
@@ -1268,14 +1233,14 @@ describe('field-dsl', () => {
         data[`field${i}`] = `value${i}`;
       }
 
-      const result = field.run(data);
+      const result = run(field, data) as unknown as Record<string, string>;
       assert.strictEqual(Object.keys(result).length, 100);
     });
 
     it('应该能处理大量元素的数组', () => {
       const field = toArray(toNumber());
       const largeArray = Array.from({ length: 10000 }, (_, i) => i);
-      const result = field.run(largeArray);
+      const result = run(field, largeArray) as unknown as number[];
       assert.strictEqual(result.length, 10000);
       assert.strictEqual(result[5000], 5000);
     });
@@ -1310,7 +1275,7 @@ describe('field-dsl', () => {
         },
       };
 
-      const result = userSchema.run(apiResponse);
+      const result = run(userSchema, apiResponse);
 
       assert.deepStrictEqual(result, {
         id: 12345,
@@ -1340,7 +1305,7 @@ describe('field-dsl', () => {
         '3': 'true',
       };
 
-      const result = rowSchema.run(csvRow);
+      const result = run(rowSchema, csvRow);
 
       assert.deepStrictEqual(result, {
         id: 1,
@@ -1373,7 +1338,7 @@ describe('field-dsl', () => {
         },
       };
 
-      const result = formSchema.run(formData);
+      const result = run(formSchema, formData);
 
       assert.deepStrictEqual(result, {
         username: 'alice',
@@ -1420,7 +1385,7 @@ describe('field-dsl', () => {
         ],
       };
 
-      const result = schema.run(data);
+      const result = run(schema, data);
 
       assert.deepStrictEqual(result, {
         orders: [
@@ -1472,7 +1437,7 @@ describe('field-dsl', () => {
         features: ['auth', 'api', 'admin'],
       };
 
-      const result = configSchema.run(config);
+      const result = run(configSchema, config);
 
       assert.deepStrictEqual(result, {
         server: {

@@ -9,7 +9,7 @@
 ## 核心特性
 
 - **双模式 API** - 支持声明式 Schema 和函数式 Field DSL 两种风格
-- **类型安全** - 完整的 TypeScript 类型推导，`Infer<T>` 自动推断输出类型
+- **类型安全** - 完整的 TypeScript 类型推导，编译后的函数自动推断输出类型
 - **路径访问** - 支持点分路径访问嵌套数据
 - **根路径引用** - 使用 `$` 从根数据访问任意位置
 - **丰富类型转换** - 自动处理字符串到数值/布尔值的转换
@@ -24,7 +24,7 @@
 使用声明式的函数式 API 构建数据转换逻辑：
 
 ```typescript
-import { toString, toNumber, toBoolean, toObject, toArray, compile, resolve } from '@quanxiaoxiao/datav';
+import { toString, toNumber, toBoolean, toObject, toArray, compile } from '@quanxiaoxiao/datav';
 
 const userField = toObject({
   id: toNumber('id'),
@@ -49,38 +49,33 @@ const result = transformer({
 // 输出: { id: 123, name: 'Alice', email: 'alice@example.com', isActive: true, score: 95.5, tags: ['vip', 'premium'] }
 ```
 
-#### 自定义转换（resolve）
+### 数据组合
 
-使用 `resolve` 函数实现复杂的数据转换逻辑：
+使用 `toObject` 和 `toArray` 组合复杂的数据结构：
 
 ```typescript
-import { toNumber, toObject, toArray, resolve } from '@quanxiaoxiao/datav';
+import { toObject, toArray, toNumber, toString, compile } from '@quanxiaoxiao/datav';
 
-const field = toObject({
-  original: toNumber('price'),
-  doubled: resolve(toNumber('price'), (value) => value * 2),
-  withDiscount: resolve(
-    toNumber('price'),
-    (value, ctx) => value * ((ctx.rootData as any).discount || 1)
-  ),
-  itemCount: resolve(
-    toArray('items'),
-    (items) => `共${items.length}件`
-  ),
+const orderField = compile(toObject({
+  orderId: toInteger('order_id'),
+  total: toNumber('total'),
+  items: toArray('items', toObject({
+    productId: toInteger('product_id'),
+    name: toString('name'),
+    quantity: toInteger('quantity'),
+  })),
+}));
+
+const result = orderField({
+  order_id: '1001',
+  total: '150.00',
+  items: [
+    { product_id: '1', name: 'Product A', quantity: '2' },
+    { product_id: '2', name: 'Product B', quantity: '1' },
+  ],
 });
 
-field.run({
-  price: 100,
-  discount: 0.8,
-  items: [{ name: 'A' }, { name: 'B' }],
-});
-
-// 输出: { original: 100, doubled: 200, withDiscount: 80, itemCount: '共2件' }
-```
-
-`resolve` 函数签名：
-```typescript
-resolve<T, R>(field: Field<T>, resolver: (value: T, ctx: { data: unknown; rootData: unknown; path: string }) => R): Field<R | null>
+// 输出: { orderId: 1001, total: 150, items: [{ productId: 1, name: 'Product A', quantity: 2 }, { productId: 2, name: 'Product B', quantity: 1 }] }
 ```
 
 ### Schema 模式
@@ -212,24 +207,24 @@ transform(schema, {
 
 ## 类型安全
 
-库提供完整的 TypeScript 类型推导，使用 `Infer<T>` 自动推断输出类型：
+库提供完整的 TypeScript 类型推导，编译后的函数自动推断输出类型：
 
 ```typescript
-import { Infer, toString, toNumber, toObject, toArray } from '@quanxiaoxiao/datav';
+import { compile, toString, toNumber, toObject, toArray } from '@quanxiaoxiao/datav';
 
-// 基础类型推导
-type NameField = ReturnType<typeof toString>;
-type InferredName = Infer<NameField>;  // string
-
-// 复合类型推导
-const userField = toObject({
+// 编译后的函数自动推导返回类型
+const userField = compile(toObject({
   name: toString('name'),
   age: toNumber('age'),
   tags: toArray('tags', toString()),
-});
+}));
 
-type UserType = Infer<typeof userField>;
-// 输出: { name: string; age: number; tags: string[] }
+// result 类型为 { name: string; age: number; tags: string[] }
+const result = userField({
+  name: 'Alice',
+  age: '25',
+  tags: ['admin', 'user'],
+});
 ```
 
 ## API 参考
@@ -245,7 +240,6 @@ type UserType = Infer<typeof userField>;
 | `toObject(path?, fields)` | 组合多个字段为对象 |
 | `toArray(path?, itemField)` | 将数据转换为数组 |
 | `compile(field)` | 将 Field 编译为可复用函数 |
-| `resolve(field, resolver)` | 自定义值转换函数 |
 
 ### Schema 模式
 
@@ -270,10 +264,10 @@ type UserType = Infer<typeof userField>;
 转换过程中遇到无效数据时返回 `null`，而非抛出异常：
 
 ```typescript
-const field = toNumber('count');
-field.run({ count: 'invalid' });   // 返回 null
-field.run({ count: '3.14' });      // 返回 null（浮点数）
-field.run({ count: '42' });        // 返回 42
+const toNumberField = compile(toNumber('count'));
+toNumberField({ count: 'invalid' });   // 返回 null
+toNumberField({ count: '3.14' });      // 返回 null（浮点数）
+toNumberField({ count: '42' });        // 返回 42
 ```
 
 使用 `compile` 函数可获得更友好的错误信息：

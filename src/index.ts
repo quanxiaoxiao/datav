@@ -9,14 +9,12 @@ import {
 import {
   compile,
   type Field,
-  type Infer,
   toArray,
   toBoolean,
   toInteger,
   toNumber,
   toObject,
   toString,
-  type TypeOf,
 } from './field-dsl.js';
 import {
   createTransform,
@@ -33,7 +31,6 @@ export {
   ErrorCode,
   Field,
   getErrorCode,
-  Infer,
   isDataVError,
   SchemaExpress,
   SchemaType,
@@ -44,9 +41,4 @@ export {
   toObject,
   toString,
   transform,
-};
-
-export type {
-  DataVErrorDetails,
-  TypeOf,
 };
