@@ -94,10 +94,6 @@ export const toObject = <T extends Record<string, Field>>(
   });
 };
 
-// ----------------------------------------------------------------------------
-// Array Field 构造器
-// ----------------------------------------------------------------------------
-
 export const toArray = (
   pathOrField: string | Field,
   maybeField?: Field,
@@ -140,7 +136,6 @@ const compileValue = (node: ValueNode): Executor => {
   return compose(transformer, accessor);
 };
 
-// 编译对象节点
 const compileObject = (
   node: ObjectNode,
   compileNode: (n: ASTNode) => Executor,

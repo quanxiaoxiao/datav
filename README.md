@@ -8,118 +8,23 @@
 
 ## 核心特性
 
-- **双模式 API** - 支持声明式 Schema 和函数式 Field DSL 两种风格
-- **类型安全** - 完整的 TypeScript 类型推导，编译后的函数自动推断输出类型
-- **路径访问** - 支持点分路径访问嵌套数据
-- **根路径引用** - 使用 `$` 从根数据访问任意位置
-- **丰富类型转换** - 自动处理字符串到数值/布尔值的转换
-- **自定义转换** - 通过 `resolve` 函数实现复杂数据转换逻辑
-- **轻量高效** - 零额外依赖，仅 6KB (gzip)
-- **完善错误处理** - 统一的 `DataVError` 错误类型
+- **双模式转换**: 支持声明式 Schema 和链式 Field DSL 两种方式
+- **类型安全**: 完整的 TypeScript 类型支持，编译时检查
+- **路径访问**: 强大的点分隔符路径访问，支持嵌套和数组索引
+- **类型转换**: 自动类型转换，处理 string/number/boolean/integer 等
+- **错误处理**: 完善的错误机制，提供详细的错误信息
 
-## 使用示例
+## 安装
 
-### Field DSL 模式
-
-使用声明式的函数式 API 构建数据转换逻辑：
-
-```typescript
-import { toString, toNumber, toBoolean, toObject, toArray, compile } from '@quanxiaoxiao/datav';
-
-const userField = toObject({
-  id: toNumber('id'),
-  name: toString('userName'),
-  email: toString('email'),
-  isActive: toBoolean('isActive'),
-  score: toNumber('score'),
-  tags: toArray('tags', toString()),
-});
-
-const transformer = compile(userField);
-
-const result = transformer({
-  id: '123',
-  userName: 'Alice',
-  email: 'alice@example.com',
-  isActive: 'true',
-  score: 95.5,
-  tags: ['vip', 'premium'],
-});
-
-// 输出: { id: 123, name: 'Alice', email: 'alice@example.com', isActive: true, score: 95.5, tags: ['vip', 'premium'] }
+```bash
+npm install @quanxiaoxiao/datav
 ```
 
-### 数据组合
+## 快速开始
 
-使用 `toObject` 和 `toArray` 组合复杂的数据结构：
+### Schema 驱动模式
 
-```typescript
-import { toObject, toArray, toNumber, toString, compile } from '@quanxiaoxiao/datav';
-
-const orderField = compile(toObject({
-  orderId: toInteger('order_id'),
-  total: toNumber('total'),
-  items: toArray('items', toObject({
-    productId: toInteger('product_id'),
-    name: toString('name'),
-    quantity: toInteger('quantity'),
-  })),
-}));
-
-const result = orderField({
-  order_id: '1001',
-  total: '150.00',
-  items: [
-    { product_id: '1', name: 'Product A', quantity: '2' },
-    { product_id: '2', name: 'Product B', quantity: '1' },
-  ],
-});
-
-// 输出: { orderId: 1001, total: 150, items: [{ productId: 1, name: 'Product A', quantity: 2 }, { productId: 2, name: 'Product B', quantity: 1 }] }
-```
-
-### Schema 模式
-
-使用 JSON Schema 风格的声明式配置：
-
-```typescript
-import { transform } from '@quanxiaoxiao/datav';
-
-const schema = {
-  path: 'data',
-  type: 'object',
-  properties: {
-    users: {
-      path: 'data.users',
-      type: 'array',
-      items: {
-        path: '.',
-        type: 'object',
-        properties: {
-          id: { path: 'id', type: 'integer' },
-          name: { path: 'name', type: 'string' },
-          email: { path: 'contact.email', type: 'string' },
-        },
-      },
-    },
-  },
-};
-
-const result = transform(schema, {
-  data: {
-    users: [
-      { id: '1', name: 'Bob', contact: { email: 'bob@example.com' } },
-      { id: '2', name: 'Charlie', contact: { email: 'charlie@example.com' } },
-    ],
-  },
-});
-
-// 输出: { users: [{ id: 1, name: 'Bob', email: 'bob@example.com' }, { id: 2, name: 'Charlie', email: 'charlie@example.com' }] }
-```
-
-#### 自定义转换（resolve）
-
-使用 `resolve` 函数实现复杂的数据转换逻辑：
+通过定义 Schema 来描述数据结构：
 
 ```typescript
 import { transform } from '@quanxiaoxiao/datav';
@@ -128,178 +33,260 @@ const schema = {
   path: '.',
   type: 'object',
   properties: {
-    price: {
-      path: '.price',
-      type: 'number',
-      resolve: (value, ctx) => (value as number) * (ctx.rootData as any).multiplier,
-    },
-    discount: {
-      path: '.originalPrice',
-      type: 'number',
-      resolve: (value) => (value as number) * 0.9,
-    },
-    itemCount: {
-      path: '.items',
-      type: 'string',
-      resolve: (value) => `共${(value as any[]).length}件商品`,
-    },
+    name: { path: '.name', type: 'string' },
+    age: { path: '.age', type: 'integer' },
+    active: { path: '.active', type: 'boolean' },
   },
 };
 
-transform(schema, {
-  price: 100,
-  originalPrice: 200,
-  multiplier: 1.5,
-  items: [{ name: 'A' }, { name: 'B' }],
+const result = transform(schema, {
+  name: 123,
+  age: '30',
+  active: 'true',
 });
-
-// 输出: { price: 150, discount: 180, itemCount: '共2件商品' }
+// { name: '123', age: 30, active: true }
 ```
 
-`resolve` 函数接收两个参数：
-- `value`: 从路径读取的原始值
-- `context`: 包含 `{ data, rootData, path }` 的上下文对象
+### Field DSL 模式
 
-## 路径语法
-
-### 普通路径
-
-使用点分路径访问嵌套数据，支持数组索引：
+通过链式 API 构建转换规则：
 
 ```typescript
-// 基础路径
-toString('name')           // 从根获取 name 字段
-toNumber('user.age')       // 嵌套访问
+import { compile, toObject, toString, toInteger, toArray } from '@quanxiaoxiao/datav';
 
-// 数组索引
-toString('items.0.name')   // 第一个元素的 name
-toString('matrix.1.2')     // 二维数组访问
-
-// 空路径
-toString()                 // 直接使用根数据
-```
-
-### 根路径引用（$）
-
-使用 `$` 从根数据访问任意位置，适用于需要跨层级引用的场景：
-
-```typescript
-import { transform } from '@quanxiaoxiao/datav';
-
-const schema = {
-  path: 'result',
-  type: 'object',
-  properties: {
-    userName: { path: '$.user.name', type: 'string' },
-    userEmail: { path: '$.contact.email', type: 'string' },
-    firstItemName: { path: '$.items.0.name', type: 'string' },
-  },
-};
-
-transform(schema, {
-  user: { name: 'Alice', id: 1 },
-  contact: { email: 'alice@example.com' },
-  items: [{ name: 'First' }, { name: 'Second' }],
+const field = toObject({
+  name: toString('user.name'),
+  age: toInteger('user.age'),
+  tags: toArray('user.tags'),
 });
 
-// 输出: { userName: 'Alice', userEmail: 'alice@example.com', firstItemName: 'First' }
-```
-
-## 类型安全
-
-库提供完整的 TypeScript 类型推导，编译后的函数自动推断输出类型：
-
-```typescript
-import { compile, toString, toNumber, toObject, toArray } from '@quanxiaoxiao/datav';
-
-// 编译后的函数自动推导返回类型
-const userField = compile(toObject({
-  name: toString('name'),
-  age: toNumber('age'),
-  tags: toArray('tags', toString()),
-}));
-
-// result 类型为 { name: string; age: number; tags: string[] }
-const result = userField({
-  name: 'Alice',
-  age: '25',
-  tags: ['admin', 'user'],
+const result = compile(field)({
+  user: { name: 'Alice', age: '25', tags: [1, 2, 3] },
 });
+// { name: 'Alice', age: 25, tags: ['1', '2', '3'] }
 ```
 
 ## API 参考
 
-### Field DSL
+### Schema 驱动模式
 
-| 函数 | 说明 |
-|------|------|
-| `toString(path?)` | 提取并转换为字符串 |
-| `toNumber(path?)` | 提取并转换为数字 |
-| `toInteger(path?)` | 提取并转换为整数 |
-| `toBoolean(path?)` | 提取并转换为布尔值 |
-| `toObject(path?, fields)` | 组合多个字段为对象 |
-| `toArray(path?, itemField)` | 将数据转换为数组 |
-| `compile(field)` | 将 Field 编译为可复用函数 |
+#### transform(schema, data)
 
-### Schema 模式
-
-| 函数 | 说明 |
-|------|------|
-| `transform(schema, data)` | 根据 Schema 转换数据 |
-| `createTransform(schema)` | 创建转换函数 |
-| `SchemaExpress` | Schema 类型定义 |
-
-#### SchemaExpress 属性
-
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `path` | `string` | 数据路径，支持点分路径和 `$` 根路径引用 |
-| `type` | `'string' \| 'number' \| 'boolean' \| 'integer' \| 'object' \| 'array'` | 数据类型 |
-| `resolve?` | `(value, context) => unknown` | 自定义转换函数（可选） |
-| `properties?` | `Record<string, SchemaExpress>` | 对象类型属性定义（仅 type 为 object 时需要） |
-| `items?` | `SchemaExpress` | 数组元素类型定义（仅 type 为 array 时需要） |
-
-## 错误处理
-
-转换过程中遇到无效数据时返回 `null`，而非抛出异常：
+一次性转换数据：
 
 ```typescript
-const toNumberField = compile(toNumber('count'));
-toNumberField({ count: 'invalid' });   // 返回 null
-toNumberField({ count: '3.14' });      // 返回 null（浮点数）
-toNumberField({ count: '42' });        // 返回 42
+const schema = {
+  path: '.',
+  type: 'object',
+  properties: {
+    id: { path: '.id', type: 'string' },
+    items: {
+      path: '.items',
+      type: 'array',
+      items: { path: '.', type: 'integer' },
+    },
+  },
+};
+
+transform(schema, { id: 123, items: ['1', '2', '3'] });
+// { id: '123', items: [1, 2, 3] }
 ```
 
-使用 `compile` 函数可获得更友好的错误信息：
+#### createTransform(schema)
+
+创建可复用的转换函数：
 
 ```typescript
-import { compile } from '@quanxiaoxiao/datav';
+const userTransformer = createTransform({
+  path: '.',
+  type: 'object',
+  properties: {
+    name: { path: '.name', type: 'string' },
+    age: { path: '.age', type: 'integer' },
+  },
+});
 
-const transformer = compile(toObject({
-  id: toNumber('id'),
-}));
+userTransformer({ name: 'Bob', age: '30' }); // { name: 'Bob', age: 30 }
+userTransformer({ name: 'Carol', age: '25' }); // { name: 'Carol', age: 25 }
+```
+
+#### validateExpressSchema(schema)
+
+验证 Schema 格式：
+
+```typescript
+const result = validateExpressSchema({
+  path: '.',
+  type: 'object',
+  properties: {
+    name: { path: '.name', type: 'string' },
+  },
+});
+// { valid: true, errors: [] }
+```
+
+### Field DSL 模式
+
+#### 基本类型转换
+
+```typescript
+toString(path?)      // 转换为字符串
+toNumber(path?)      // 转换为数字
+toInteger(path?)     // 转换为整数
+toBoolean(path?)     // 转换为布尔值
+```
+
+#### 复合类型
+
+```typescript
+toObject(pathOrFields, fields?)  // 对象类型
+toArray(pathOrField, field?)     // 数组类型
+```
+
+#### compile(field)
+
+将 Field 编译为可执行函数：
+
+```typescript
+const field = toObject({
+  name: toString('user.name'),
+  age: toInteger('user.age'),
+});
+
+const executor = compile(field);
+executor({ user: { name: 'Alice', age: '25' } });
+// { name: 'Alice', age: 25 }
+```
+
+### 路径访问
+
+支持点分隔符路径和数组索引：
+
+```typescript
+// 嵌套路径
+toString('user.profile.name')
+
+// 数组索引
+toString('items.0.name')
+toString('matrix.0.1.value')
+
+// 根路径
+toString('$')
+```
+
+### 错误处理
+
+```typescript
+import { DataVError, isDataVError, ERROR_CODES } from '@quanxiaoxiao/datav';
 
 try {
-  transformer({ id: 'not-a-number' });
+  transform(schema, data);
 } catch (error) {
-  console.error(error.message);  // "Transformation Failed: ..."
+  if (isDataVError(error)) {
+    console.log(error.code);      // 错误码
+    console.log(error.details);   // 详细错误信息
+  }
 }
 ```
 
-## 与其他库对比
+## 高级用法
 
-| 特性 | datav | JSONResume | Zod | Yup |
-|------|-------|------------|-----|-----|
-| 零依赖 | ✅ | ❌ | ❌ | ❌ |
-| 体积 (gzip) | 6KB | 8KB | 13KB | 12KB |
-| Schema 模式 | ✅ | ❌ | ❌ | ✅ |
-| Field DSL | ✅ | ❌ | ❌ | ❌ |
-| 类型推导 | ✅ | ❌ | ✅ | ❌ |
-| 根路径引用 | ✅ | ❌ | ❌ | ❌ |
-| 自定义转换 (resolve) | ✅ | ❌ | ✅ | ✅ |
+### 嵌套对象转换
 
-## 相关链接
+```typescript
+const schema = {
+  path: '.',
+  type: 'object',
+  properties: {
+    user: {
+      path: '.user',
+      type: 'object',
+      properties: {
+        id: { path: '.id', type: 'integer' },
+        name: { path: '.name', type: 'string' },
+        address: {
+          path: '.address',
+          type: 'object',
+          properties: {
+            city: { path: '.city', type: 'string' },
+            zipCode: { path: '.zip', type: 'integer' },
+          },
+        },
+      },
+    },
+  },
+};
 
-- [NPM 包](https://www.npmjs.com/package/@quanxiaoxiao/datav)
-- [GitHub 仓库](https://github.com/quanxiaoxiao/datav)
-- [问题反馈](https://github.com/quanxiaoxiao/datav/issues)
+transform(schema, {
+  user: {
+    id: '42',
+    name: 'Alice',
+    address: { city: 'New York', zip: '10001' },
+  },
+});
+// { user: { id: 42, name: 'Alice', address: { city: 'New York', zip: 10001 } } }
+```
+
+### 数组转换
+
+```typescript
+const schema = {
+  path: '.users',
+  type: 'array',
+  items: {
+    path: '.',
+    type: 'object',
+    properties: {
+      id: { path: '.id', type: 'integer' },
+      name: { path: '.name', type: 'string' },
+    },
+  },
+};
+
+transform(schema, {
+  users: [
+    { id: '1', name: 'A' },
+    { id: '2', name: 'B' },
+  ],
+});
+// [{ id: 1, name: 'A' }, { id: 2, name: 'B' }]
+```
+
+### 自定义 Resolver
+
+通过 `resolve` 字段添加自定义转换逻辑：
+
+```typescript
+const schema = {
+  path: '.',
+  type: 'object',
+  properties: {
+    amount: {
+      path: '.amount',
+      type: 'number',
+      resolve: (value) => (value as number) * 100,
+    },
+  },
+};
+
+transform(schema, { amount: 10 });
+// { amount: 1000 }
+```
+
+## 类型定义
+
+```typescript
+type SchemaType = 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
+
+interface SchemaExpress {
+  path: string;
+  type: SchemaType;
+  resolve?: (value: unknown, context: { data: unknown; rootData: unknown; path: string }) => unknown;
+  properties?: Record<string, SchemaExpress>;
+  items?: SchemaExpress;
+}
+```
+
+## 许可证
+
+MIT
