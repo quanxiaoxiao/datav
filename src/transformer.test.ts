@@ -7,11 +7,13 @@ import { createTransform, validateExpressSchema, SchemaExpress, transform } from
 // Test Helpers & Fixtures
 // ============================================================================
 
-const createValidSchema = (overrides: Partial<SchemaExpress> = {}): SchemaExpress => ({
-  path: 'test',
-  type: 'string',
-  ...overrides,
-});
+const createValidSchema = (overrides: Partial<SchemaExpress> = {}): SchemaExpress => {
+  const base: SchemaExpress = {
+    path: 'test',
+    type: 'string',
+  };
+  return { ...base, ...overrides } as SchemaExpress;
+};
 
 const assertValidationError = (result: any, errorPattern: string | RegExp) => {
   assert.strictEqual(result.valid, false);
@@ -725,6 +727,188 @@ describe('transform', () => {
       assert.strictEqual(result.title, 'My Article');
       assert.strictEqual(result.authorName, 'Charlie');
       assert.strictEqual(result.firstTag, 'tech');
+    });
+  });
+
+  describe('Resolve function', () => {
+    test('should apply resolve function to transform value', () => {
+      const schema: SchemaExpress = {
+        path: '.amount',
+        type: 'number',
+        resolve: (value) => (value as number) * 2,
+      };
+
+      const result = transform(schema, { amount: 10 });
+      assert.strictEqual(result, 20);
+    });
+
+    test('should receive context with data, rootData, and path', () => {
+      let receivedContext: any = null;
+
+      const schema: SchemaExpress = {
+        path: '.value',
+        type: 'string',
+        resolve: (value, ctx) => {
+          receivedContext = ctx;
+          return `processed:${value}`;
+        },
+      };
+
+      const data = { value: 'test', extra: 'data' };
+      transform(schema, data);
+
+      assert.ok(receivedContext !== null);
+      assert.strictEqual(receivedContext.data, data);
+      assert.strictEqual(receivedContext.rootData, data);
+      assert.strictEqual(receivedContext.path, '.value');
+    });
+
+    test('should resolve to different type', () => {
+      const schema: SchemaExpress = {
+        path: '.items',
+        type: 'string',
+        resolve: (value) => `count:${(value as any[]).length}`,
+      };
+
+      const result = transform(schema, { items: [1, 2, 3] });
+      assert.strictEqual(result, 'count:3');
+    });
+
+    test('should access rootData in resolve function', () => {
+      const schema: SchemaExpress = {
+        path: '.price',
+        type: 'number',
+        resolve: (_value, ctx) => {
+          const multiplier = (ctx.rootData as any).multiplier || 1;
+          return (_value as number) * multiplier;
+        },
+      };
+
+      const result = transform(schema, { price: 100, multiplier: 1.5 });
+      assert.strictEqual(result, 150);
+    });
+
+    test('should work with resolve in object properties', () => {
+      const schema: SchemaExpress = {
+        path: '.',
+        type: 'object',
+        properties: {
+          original: { path: '.value', type: 'string' },
+          doubled: {
+            path: '.value',
+            type: 'number',
+            resolve: (value) => parseFloat(value as string) * 2,
+          } as SchemaExpress,
+        },
+      };
+
+      const result = transform(schema, { value: '25' }) as any;
+      assert.strictEqual(result.original, '25');
+      assert.strictEqual(result.doubled, 50);
+    });
+
+    test('should work with resolve in array items', () => {
+      const schema: SchemaExpress = {
+        path: '.prices',
+        type: 'array',
+        items: {
+          path: '.',
+          type: 'number',
+          resolve: (value) => (value as number) + 10,
+        } as SchemaExpress,
+      };
+
+      const result = transform(schema, { prices: [100, 200, 300] });
+      assert.deepStrictEqual(result, [110, 210, 310]);
+    });
+
+    test('should receive original data context in nested resolve', () => {
+      const receivedContexts: any[] = [];
+
+      const schema: SchemaExpress = {
+        path: '.items',
+        type: 'array',
+        items: {
+          path: '.',
+          type: 'object',
+          properties: {
+            id: { path: '.id', type: 'integer' },
+            computed: {
+              path: '.value',
+              type: 'number',
+              resolve: (value, ctx) => {
+                receivedContexts.push(ctx.data);
+                return (value as number) * (ctx.data as any).multiplier;
+              },
+            } as SchemaExpress,
+          },
+        } as SchemaExpress,
+      };
+
+      transform(schema, {
+        items: [
+          { id: 1, value: 10, multiplier: 2 },
+          { id: 2, value: 20, multiplier: 3 },
+        ],
+      });
+
+      assert.strictEqual(receivedContexts.length, 2);
+      assert.strictEqual(receivedContexts[0].multiplier, 2);
+      assert.strictEqual(receivedContexts[1].multiplier, 3);
+    });
+
+    test('should call resolve even when path is missing', () => {
+      let resolveCalled = false;
+
+      const schema: SchemaExpress = {
+        path: '.missing',
+        type: 'string',
+        resolve: () => {
+          resolveCalled = true;
+          return 'resolved value';
+        },
+      };
+
+      const result = transform(schema, { other: 'value' });
+      assert.strictEqual(resolveCalled, true);
+      assert.strictEqual(result, 'resolved value');
+    });
+
+    test('should handle resolve returning undefined', () => {
+      const schema: SchemaExpress = {
+        path: '.value',
+        type: 'string',
+        resolve: () => undefined,
+      };
+
+      const result = transform(schema, { value: 'test' });
+      assert.strictEqual(result, null);
+    });
+
+    test('should handle resolve error gracefully', () => {
+      const schema: SchemaExpress = {
+        path: '.value',
+        type: 'string',
+        resolve: () => {
+          throw new Error('Resolve failed');
+        },
+      };
+
+      assert.throws(
+        () => transform(schema, { value: 'test' }),
+        /Resolve failed/
+      );
+    });
+
+    test('should work with resolve and $ path reference', () => {
+      const schema: SchemaExpress = {
+        path: '.localValue',
+        type: 'string',
+        resolve: (value, ctx) => `${value} (ref: ${(ctx.rootData as any).ref})`,
+      };
+
+      const result = transform(schema, { localValue: 'test', ref: 'REF123' });
+      assert.strictEqual(result, 'test (ref: REF123)');
     });
   });
 });
