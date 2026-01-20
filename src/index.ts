@@ -1,11 +1,22 @@
 import {
+  DataVError,
+  type DataVErrorDetails,
+  ERROR_CODES,
+  type ErrorCode,
+  getErrorCode,
+  isDataVError,
+} from './errors.js';
+import {
   compile,
+  type Field,
+  type Infer,
   toArray,
   toBoolean,
   toInteger,
   toNumber,
   toObject,
   toString,
+  type TypeOf,
 } from './field-dsl.js';
 import {
   createTransform,
@@ -17,8 +28,15 @@ import {
 export {
   compile,
   createTransform,
-  type SchemaExpress,
-  type SchemaType,
+  DataVError,
+  ERROR_CODES,
+  ErrorCode,
+  Field,
+  getErrorCode,
+  Infer,
+  isDataVError,
+  SchemaExpress,
+  SchemaType,
   toArray,
   toBoolean,
   toInteger,
@@ -26,4 +44,9 @@ export {
   toObject,
   toString,
   transform,
+};
+
+export type {
+  DataVErrorDetails,
+  TypeOf,
 };

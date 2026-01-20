@@ -46,6 +46,11 @@ function createField<T>(
   };
 }
 
+function wrapError(error: unknown, prefix: string): Error {
+  const message = error instanceof Error ? error.message : String(error);
+  return new Error(`${prefix} -> ${message}`);
+}
+
 // ============================================================================
 // 基础类型转换器
 // ============================================================================
@@ -148,9 +153,4 @@ export function compile<T>(field: Field<T>): (data: unknown) => T {
       throw new Error(`Transformation Failed: ${message}`);
     }
   };
-}
-
-function wrapError(error: unknown, prefix: string): Error {
-  const message = error instanceof Error ? error.message : String(error);
-  return new Error(`${prefix} -> ${message}`);
 }

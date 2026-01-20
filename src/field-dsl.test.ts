@@ -458,10 +458,10 @@ describe('field-dsl', () => {
 
       it('应该保持对象类型正确', () => {
         const field = toObject('obj', {
-          value: toNumber('value'),
+          value: toNumber('value2'),
         });
 
-        const result = field.run({ obj: { value: 100 } });
+        const result = field.run({ obj: { value2: 100 } });
         assert.strictEqual(typeof result.value, 'number');
       });
     });
